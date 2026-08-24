@@ -147,4 +147,4 @@
 - [x] Add a full-level interactive 2D map mode that exposes rooms, corridor links, player, objectives, and known threats, with a one-tap return to player focus.
 - [x] Keep semi-3D action modes and add only depth-appropriate background parallax layers.
 - [x] Validate map, tactical, and 3Л framing at portrait size; build and verify the signed Android v1.4.0 APK/AAB.
-- [ ] Push the verified navigation/camera update to `sj0404-collab/Octa_ai_game`.
+- [x] Push the verified navigation/camera update to `sj0404-collab/Octa_ai_game`.
