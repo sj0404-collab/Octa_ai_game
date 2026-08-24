@@ -123,11 +123,18 @@
 
 - [x] Verify the available GitHub integration and choose the repository owner/name.
 - [x] Obtain explicit authorization to create or update the destination repository.
-- [ ] Export the current checkpointed project to the authorized GitHub repository without using chat-provided credentials.
-- [ ] Confirm the repository URL and handoff status.
+- [x] Export the current checkpointed project to the authorized GitHub repository without using chat-provided credentials.
+- [x] Confirm the repository URL and handoff status.
 
 ## Existing repository destination
 
 - [x] Verify write access and existing content for `sj0404-collab/Octa_ai_game`.
 - [x] Preserve any existing repository content or obtain confirmation before replacing conflicting files.
-- [ ] Export the current camera-hotfix checkpoint to the approved repository and confirm its revision.
+- [x] Export the current camera-hotfix checkpoint to the approved repository and confirm its revision.
+
+## GitHub-backed continuation
+
+- [x] Synchronize the local project and GitHub working copy against the exported `main` revision.
+- [x] Implement access-card doors with clear route requirements, responsive opening feedback, and a useful alternate-route payoff.
+- [x] Validate the slice in mobile camera modes and Android packaging.
+- [ ] Commit and push the verified follow-up revision to `sj0404-collab/Octa_ai_game`.
