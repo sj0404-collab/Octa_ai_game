@@ -3,7 +3,7 @@ export type GameStatus = "playing" | "won" | "lost" | "campaign-complete" | "eve
 export type SentinelMode = "patrol" | "alert" | "search" | "chase" | "stunned";
 export type ShellId = "prism" | "echo" | "bastion";
 export type NightMode = "story" | "free";
-export type CameraMode = "tactical" | "third" | "first";
+export type CameraMode = "map" | "tactical" | "third" | "first";
 
 export interface Point2 {
   x: number;
@@ -22,6 +22,14 @@ export interface MinimapRoom {
   discovered: boolean;
 }
 
+export interface MinimapCorridor {
+  id: number;
+  x: number;
+  z: number;
+  width: number;
+  depth: number;
+}
+
 export interface MinimapMarker extends Point2 {
   id: string;
   kind: MinimapMarkerKind;
@@ -31,6 +39,7 @@ export interface MinimapMarker extends Point2 {
 
 export interface MinimapSnapshot {
   rooms: MinimapRoom[];
+  corridors: MinimapCorridor[];
   markers: MinimapMarker[];
   player: Point2;
   heading: Point2;

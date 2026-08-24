@@ -37,7 +37,7 @@ export class GameWorld {
   private readonly mode: NightMode = new URLSearchParams(window.location.search).get("mode") === "free" ? "free" : "story";
   private readonly progress = new ProgressStore();
   private runCash = 0;
-  private cameraMode: CameraMode = new URLSearchParams(window.location.search).get("camera") === "first" ? "first" : new URLSearchParams(window.location.search).get("camera") === "third" ? "third" : "tactical";
+  private cameraMode: CameraMode = new URLSearchParams(window.location.search).get("camera") === "map" ? "map" : new URLSearchParams(window.location.search).get("camera") === "first" ? "first" : new URLSearchParams(window.location.search).get("camera") === "third" ? "third" : "tactical";
   private appliedCameraMode: CameraMode | null = null;
   private readonly discoveredRooms = new Set<number>();
   private scannerCooldown = 0;
@@ -176,8 +176,9 @@ export class GameWorld {
   }
   private buildMinimap(exitActive: boolean): MinimapSnapshot {
     const layout = this.environment.currentLayout;
-    if (!layout) return { rooms: [], markers: [], player: { ...this.player.position }, heading: this.player.getViewDirection(), breadcrumbs: [], waypoint: null, waypointLabel: null, discoveredRooms: 0, totalRooms: 0, alert: this.enemies.mode, scannerReady: this.scannerCooldown <= 0, scannerCooldown: this.scannerCooldown, scanActive: this.scannerRevealTime > 0 };
-    const knownAt = (point: Point2) => this.scannerRevealTime > 0 && Math.hypot(point.x - this.player.position.x, point.z - this.player.position.z) <= 8.5 || layout.rooms.some((room, index) => this.discoveredRooms.has(index) && Math.abs(point.x - room.x) <= room.width / 2 + 1.35 && Math.abs(point.z - room.z) <= room.depth / 2 + 1.35);
+    if (!layout) return { rooms: [], corridors: [], markers: [], player: { ...this.player.position }, heading: this.player.getViewDirection(), breadcrumbs: [], waypoint: null, waypointLabel: null, discoveredRooms: 0, totalRooms: 0, alert: this.enemies.mode, scannerReady: this.scannerCooldown <= 0, scannerCooldown: this.scannerCooldown, scanActive: this.scannerRevealTime > 0 };
+    const mapReveal = this.cameraMode === "map";
+    const knownAt = (point: Point2) => mapReveal || this.scannerRevealTime > 0 && Math.hypot(point.x - this.player.position.x, point.z - this.player.position.z) <= 8.5 || layout.rooms.some((room, index) => this.discoveredRooms.has(index) && Math.abs(point.x - room.x) <= room.width / 2 + 1.35 && Math.abs(point.z - room.z) <= room.depth / 2 + 1.35);
     const marker = (id: string, kind: MinimapMarker["kind"], point: Point2, known = knownAt(point), active?: boolean): MinimapMarker => ({ id, kind, x: point.x, z: point.z, known, active });
     const lootMarkers = this.environment.loot.filter((item) => !item.collected).map((item, index) => marker(`loot-${index}`, item.data.kind, item.data));
     const objectiveAccess = this.environment.shards.find((shard) => shard.active && !shard.collected);
@@ -186,9 +187,9 @@ export class GameWorld {
     const hazardMarkers = [...layout.movingWalls.map((wall, index) => marker(`wall-${index}`, "moving-wall", wall)), ...layout.traps.map((trap, index) => marker(`trap-${index}`, "trap", trap))];
     const roomMarkers = layout.rooms.flatMap((room, index) => room.kind === "vault" ? [marker(`safe-${index}`, "safe", room, this.discoveredRooms.has(index))] : []);
     const exitIndex = layout.rooms.findIndex((room) => room.kind === "exit");
-    const threatMarkers = this.enemies.getMinimapContacts(this.player.position, this.scannerRevealTime > 0 ? 8.5 : 4.8).map((contact) => marker(contact.id, "threat", contact, true, contact.mode === "chase"));
+    const threatMarkers = this.enemies.getMinimapContacts(this.player.position, mapReveal ? 99 : this.scannerRevealTime > 0 ? 8.5 : 4.8).map((contact) => marker(contact.id, "threat", contact, true, contact.mode === "chase"));
     const waypoint = exitActive || !objectiveAccess ? layout.exit : objectiveAccess.position;
-    return { rooms: layout.rooms.map((room, index) => ({ id: index, ...room, discovered: this.discoveredRooms.has(index) })), markers: [marker("exit", "exit", layout.exit, exitActive || this.discoveredRooms.has(exitIndex), exitActive), ...roomMarkers, ...accessMarkers, ...lootMarkers, ...terminalMarkers, ...hazardMarkers, ...threatMarkers], player: { ...this.player.position }, heading: this.player.getViewDirection(), breadcrumbs: this.breadcrumbs, waypoint, waypointLabel: exitActive || !objectiveAccess ? "ВЫХОД" : "ПРОПУСК", discoveredRooms: this.discoveredRooms.size, totalRooms: layout.rooms.length, alert: this.enemies.mode, scannerReady: this.scannerCooldown <= 0, scannerCooldown: this.scannerCooldown, scanActive: this.scannerRevealTime > 0 };
+    return { rooms: layout.rooms.map((room, index) => ({ id: index, ...room, discovered: mapReveal || this.discoveredRooms.has(index) })), corridors: layout.corridors.map((corridor, index) => ({ id: index, x: corridor.x, z: corridor.z, width: corridor.width, depth: corridor.depth })), markers: [marker("exit", "exit", layout.exit, exitActive || mapReveal || this.discoveredRooms.has(exitIndex), exitActive), ...roomMarkers, ...accessMarkers, ...lootMarkers, ...terminalMarkers, ...hazardMarkers, ...threatMarkers], player: { ...this.player.position }, heading: this.player.getViewDirection(), breadcrumbs: this.breadcrumbs, waypoint, waypointLabel: exitActive || !objectiveAccess ? "ВЫХОД" : "ПРОПУСК", discoveredRooms: mapReveal ? layout.rooms.length : this.discoveredRooms.size, totalRooms: layout.rooms.length, alert: this.enemies.mode, scannerReady: this.scannerCooldown <= 0, scannerCooldown: this.scannerCooldown, scanActive: this.scannerRevealTime > 0 };
   }
   private updateBreadcrumbs(delta: number) { this.breadcrumbTimer -= delta; if (this.breadcrumbTimer > 0) return; this.breadcrumbTimer = 1.08; const last = this.breadcrumbs[this.breadcrumbs.length - 1]; if (!last || Math.hypot(last.x - this.player.position.x, last.z - this.player.position.z) > 1.2) this.breadcrumbs = [...this.breadcrumbs.slice(-8), { ...this.player.position }]; }
   private triggerScanner() { if (this.scannerCooldown > 0) return; this.scannerCooldown = 11.5; this.scannerRevealTime = 3.8; this.player.noise = Math.min(100, this.player.noise + 16); const layout = this.environment.currentLayout; layout?.rooms.forEach((room, index) => { if (Math.hypot(room.x - this.player.position.x, room.z - this.player.position.z) <= 8.5) this.discoveredRooms.add(index); }); this.emitSound("scan"); }
@@ -202,16 +203,20 @@ export class GameWorld {
     const portrait = engine.getRenderHeight() > engine.getRenderWidth();
     const forward = this.player.getViewDirection();
     const zoom = this.input.getTacticalZoom();
+    const isMap = this.cameraMode === "map";
     const isTactical = this.cameraMode === "tactical";
     this.player.setFirstPerson(this.cameraMode === "first");
     this.environment.setFirstPersonFocus(this.player.position, this.cameraMode === "first");
-    this.environment.setCameraOcclusion(this.player.position, !isTactical);
-    const desired = this.cameraMode === "first" ? new Vector3(this.player.position.x + forward.x * 1.85, 0.34, this.player.position.z + forward.z * 1.85) : new Vector3(this.player.position.x, 0.2, this.player.position.z);
+    this.environment.setCameraOcclusion(this.player.position, !isTactical && !isMap);
+    const rooms = this.environment.currentLayout?.rooms ?? [];
+    const mapCenter = rooms.length ? rooms.reduce((center, room) => new Vector3(center.x + room.x / rooms.length, 0.16, center.z + room.z / rooms.length), Vector3.Zero()) : new Vector3(this.player.position.x, 0.16, this.player.position.z);
+    const mapSpan = rooms.length ? Math.max(...rooms.map((room) => Math.max(Math.abs(room.x - mapCenter.x) + room.width / 2, Math.abs(room.z - mapCenter.z) + room.depth / 2))) : 12;
+    const desired = isMap ? mapCenter : this.cameraMode === "first" ? new Vector3(this.player.position.x + forward.x * 1.85, 0.34, this.player.position.z + forward.z * 1.85) : new Vector3(this.player.position.x, 0.2, this.player.position.z);
     const easing = Math.min(1, delta * (isTactical ? 5.2 : 7.4));
     this.camera.target = Vector3.Lerp(this.camera.target, desired, easing);
-    const radius = isTactical ? (portrait ? 10.8 + zoom * 5.8 : 14 + zoom * 8) : this.cameraMode === "third" ? (portrait ? 10.6 : 9.1) : 5.7;
-    const beta = isTactical ? (portrait ? 0.42 : 0.38) : this.cameraMode === "third" ? 0.86 : 1.04 + this.firstLookPitch;
-    const alpha = isTactical ? -Math.PI / 2 : this.cameraMode === "third" ? -Math.PI / 2 + 0.58 : Math.atan2(-forward.z, -forward.x);
+    const radius = isMap ? Math.min(36, Math.max(portrait ? 28.5 : 24, mapSpan * (portrait ? 1.22 : 0.95))) : isTactical ? (portrait ? 10.8 + zoom * 5.8 : 14 + zoom * 8) : this.cameraMode === "third" ? (portrait ? 10.6 : 9.1) : 5.7;
+    const beta = isMap ? 0.18 : isTactical ? (portrait ? 0.42 : 0.38) : this.cameraMode === "third" ? 0.86 : 1.04 + this.firstLookPitch;
+    const alpha = isMap || isTactical ? -Math.PI / 2 : this.cameraMode === "third" ? -Math.PI / 2 + 0.58 : Math.atan2(-forward.z, -forward.x);
     if (this.appliedCameraMode !== this.cameraMode) {
       this.camera.target = desired;
       this.camera.radius = radius;
@@ -223,6 +228,6 @@ export class GameWorld {
       this.camera.beta += (beta - this.camera.beta) * Math.min(1, delta * 5.5);
       this.camera.alpha += (alpha - this.camera.alpha) * Math.min(1, delta * 5.5);
     }
-    this.camera.fov = isTactical ? 0.76 : this.cameraMode === "third" ? 0.76 : 0.7;
+    this.camera.fov = isMap ? 0.84 : isTactical ? 0.76 : this.cameraMode === "third" ? 0.76 : 0.7;
   }
 }

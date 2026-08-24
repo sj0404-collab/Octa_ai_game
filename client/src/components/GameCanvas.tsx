@@ -12,7 +12,7 @@ const INITIAL_HUD: HUDSnapshot = {
   charges: 0, maxCharges: 5, secondsLeft: 90, sentinelMode: "patrol", status: "playing",
   message: "СОБЕРИТЕ РЕЛЕ И НАЙДИТЕ ВЫХОД", pulseReady: false, sector: 1, sectorName: "ПЕРИМЕТР",
   totalSectors: 3, score: 0, usedPulses: 0, grade: null, health: 2, maxHealth: 2, stealth: 100,
-  noise: 0, shell: "echo", jumpReady: true, dashReady: true, rollReady: true, crouching: false, flashlightOn: true, canInteract: false, event: null, ending: null, mode: "story", money: 0, rations: 0, runCash: 0, relics: [], achievements: 0, cameraMode: "tactical", tacticalZoom: 0.52, hasCheckpoint: false, minimap: { rooms: [], markers: [], player: { x: -15.2, z: 9.4 }, heading: { x: 0, z: 1 }, breadcrumbs: [], waypoint: null, waypointLabel: null, discoveredRooms: 0, totalRooms: 0, alert: "patrol", scannerReady: true, scannerCooldown: 0, scanActive: false },
+  noise: 0, shell: "echo", jumpReady: true, dashReady: true, rollReady: true, crouching: false, flashlightOn: true, canInteract: false, event: null, ending: null, mode: "story", money: 0, rations: 0, runCash: 0, relics: [], achievements: 0, cameraMode: "tactical", tacticalZoom: 0.52, hasCheckpoint: false, minimap: { rooms: [], corridors: [], markers: [], player: { x: -15.2, z: 9.4 }, heading: { x: 0, z: 1 }, breadcrumbs: [], waypoint: null, waypointLabel: null, discoveredRooms: 0, totalRooms: 0, alert: "patrol", scannerReady: true, scannerCooldown: 0, scanActive: false },
 };
 
 const TUTORIAL_STEPS = [
@@ -38,7 +38,7 @@ function TacticalMinimap({ map, expanded, onToggle }: { map: MinimapSnapshot; ex
     <svg className="minimap-svg" viewBox="-21 -15 42 30" role="img" aria-label="Тактическая карта комнат">
       <g transform="scale(1 -1)">
         <rect className="map-boundary" x="-20.5" y="-14.5" width="41" height="29" />
-        {map.rooms.map((room) => <rect className={`map-room kind-${room.kind} ${room.discovered ? "is-discovered" : ""}`} key={room.id} x={room.x - room.width / 2} y={room.z - room.depth / 2} width={room.width} height={room.depth} />)}
+        {map.corridors.map((corridor) => <rect className="map-corridor" key={corridor.id} x={corridor.x - corridor.width / 2} y={corridor.z - corridor.depth / 2} width={corridor.width} height={corridor.depth} />)}{map.rooms.map((room) => <rect className={`map-room kind-${room.kind} ${room.discovered ? "is-discovered" : ""}`} key={room.id} x={room.x - room.width / 2} y={room.z - room.depth / 2} width={room.width} height={room.depth} />)}
         {map.waypoint && <line className="map-route" x1={map.player.x} y1={map.player.z} x2={map.waypoint.x} y2={map.waypoint.z} />}
         <g className="map-breadcrumbs">{map.breadcrumbs.map((crumb, index) => <circle key={`${crumb.x}-${crumb.z}-${index}`} cx={crumb.x} cy={crumb.z} r="0.16" />)}</g>
         {visibleMarkers.map((marker) => <g className={`map-marker marker-${marker.kind} ${marker.active ? "is-active" : ""}`} key={marker.id} transform={`translate(${marker.x} ${marker.z})`}><circle r={marker.kind === "threat" ? 0.62 : 0.42} /></g>)}
@@ -47,6 +47,18 @@ function TacticalMinimap({ map, expanded, onToggle }: { map: MinimapSnapshot; ex
     </svg>
     <span className="minimap-footer"><em className={map.scannerReady ? "scan-ready" : ""}>{map.scannerReady ? "C / СКАН ГОТОВ" : `СКАН ${Math.ceil(map.scannerCooldown)}с`}</em>{map.waypoint && <span className="map-route-readout"><b style={{ transform: `rotate(${waypointAngle}deg)` }}>↑</b><i>К {map.waypointLabel} {waypointDistance}м</i></span>}<span className="map-legend">{visibleMarkers.slice(0, expanded ? 8 : 3).map((marker) => <i key={`label-${marker.id}`} className={`marker-${marker.kind}`}>{MAP_SYMBOLS[marker.kind]}</i>)}</span></span>
   </button>;
+}
+
+function FullFloorMap({ map, onFocus }: { map: MinimapSnapshot; onFocus: () => void }) {
+  const playerAngle = -(Math.atan2(map.heading.x, map.heading.z) * 180 / Math.PI);
+  return <section className="full-floor-map" aria-label="Интерактивная карта всего этажа">
+    <header><span><b>2D // ВСЯ ПЛАНИРОВКА</b><i>{map.totalRooms} КОМНАТ · УГРОЗЫ ВИДИМЫ</i></span><button type="button" onClick={onFocus}>К ИГРОКУ / ДЕЙСТВИЕ</button></header>
+    <button type="button" className="full-floor-map-canvas" onClick={onFocus} aria-label="Нажмите, чтобы вернуться к игроку">
+      <svg viewBox="-21 -15 42 30" role="img" aria-label="Полная 2D карта этажа">
+        <g transform="scale(1 -1)"><rect className="map-boundary" x="-20.5" y="-14.5" width="41" height="29" />{map.corridors.map((corridor) => <rect className="map-corridor" key={corridor.id} x={corridor.x - corridor.width / 2} y={corridor.z - corridor.depth / 2} width={corridor.width} height={corridor.depth} />)}{map.rooms.map((room) => <rect className={`map-room kind-${room.kind} is-discovered`} key={room.id} x={room.x - room.width / 2} y={room.z - room.depth / 2} width={room.width} height={room.depth} />)}{map.waypoint && <line className="map-route" x1={map.player.x} y1={map.player.z} x2={map.waypoint.x} y2={map.waypoint.z} />}{map.markers.filter((marker) => marker.known).map((marker) => <g className={`map-marker marker-${marker.kind} ${marker.active ? "is-active" : ""}`} key={marker.id} transform={`translate(${marker.x} ${marker.z})`}><circle r={marker.kind === "threat" ? 0.62 : 0.42} /></g>)}<g className="map-player" transform={`rotate(${playerAngle} ${map.player.x} ${map.player.z}) translate(${map.player.x} ${map.player.z})`}><path d="M 0 0.95 L -0.55 -0.56 L 0 -0.28 L 0.55 -0.56 Z" /></g></g>
+      </svg><span>НАЖМИТЕ КАРТУ, ЧТОБЫ ВЕРНУТЬСЯ К ИГРОКУ</span>
+    </button>
+  </section>;
 }
 
 export default function GameCanvas() {
@@ -137,7 +149,7 @@ export default function GameCanvas() {
   const trigger = (name: string) => (event: ReactPointerEvent<HTMLButtonElement>) => { event.preventDefault(); send(name); };
   const nextSensitivity = () => setSensitivity((value) => value >= 1.25 ? 0.75 : Number((value + 0.25).toFixed(2)));
   const chooseEvent = (choice: "guide" | "core" | "roulette") => window.dispatchEvent(new CustomEvent("ai-core-event-choice", { detail: { choice } }));
-  const chooseCamera = (mode: "tactical" | "third" | "first") => window.dispatchEvent(new CustomEvent("ai-core-camera-mode", { detail: { mode } }));
+  const chooseCamera = (mode: "map" | "tactical" | "third" | "first") => window.dispatchEvent(new CustomEvent("ai-core-camera-mode", { detail: { mode } }));
   const changeCameraZoom = (event: ChangeEvent<HTMLInputElement>) => window.dispatchEvent(new CustomEvent("ai-core-camera-zoom", { detail: { zoom: Number(event.target.value) } }));
   const switchMode = (mode: "story" | "free") => { const params = new URLSearchParams(window.location.search); params.set("mode", mode); window.location.search = params.toString(); };
   const startRun = (continueRun = false) => { setShowMenu(false); setShowTutorial(false); send(continueRun ? "ai-core-continue" : "ai-core-resume"); };
@@ -154,6 +166,7 @@ export default function GameCanvas() {
     <main className="prism-shell rogue-shell night-shift-shell" aria-label="Игра AI Core Escape Night Shift">
       <div className="prism-vignette" aria-hidden="true" /><div className="prism-scanlines" aria-hidden="true" />
       <canvas ref={canvasRef} className="prism-canvas" aria-label="Игровая зона офисного кошмара" />
+      <div className={`parallax-plane parallax-far mode-${hud.cameraMode}`} style={{ transform: `translate(${-hud.minimap.player.x * 0.25}px, ${hud.minimap.player.z * 0.18}px)` }} aria-hidden="true" /><div className={`parallax-plane parallax-near mode-${hud.cameraMode}`} style={{ transform: `translate(${-hud.minimap.player.x * 0.7}px, ${hud.minimap.player.z * 0.48}px)` }} aria-hidden="true" />
       <div className={`tactical-vision ${hud.cameraMode === "tactical" ? "is-active" : ""} ${hud.minimap.scanActive ? "is-scanning" : ""}`} aria-hidden="true" />
       <div className={`threat-field threat-${hud.sentinelMode}`} aria-hidden="true"><span /><i /></div>
       {showMenu && <section className="main-menu-panel" aria-label="Главное меню"><p className="hud-kicker">AI//CORE // НОЧНАЯ СМЕНА</p><div className="comic-strip" aria-hidden="true"><i>УТРО</i><i>СМЕНА</i><i>ВЫХОД?</i></div><h2>ВЕРНИТЕ СВОЁ.<br />НАЙДИТЕ ВЫХОД.</h2><p>Подвал ведёт к архивному лифту, лифт — к чердачному хранилищу. Офис говорит голосом AI//CORE, но решение остаётся за вами.</p><div className="main-menu-actions"><button type="button" onClick={() => startRun(false)}>НОВАЯ СМЕНА <span>→</span></button>{hud.hasCheckpoint && <button type="button" className="menu-secondary" onClick={() => startRun(true)}>ПРОДОЛЖИТЬ С ЧЕКПОИНТА <span>↗</span></button>}<button type="button" className="menu-secondary" onClick={() => send("ai-core-buy-ration")}>ПАЁК +1 // $40 <span>{hud.rations}</span></button></div><p className="menu-tip">ВЕКТОР — движение · СВЯЗЬ — двери/узлы · ПЕРЕКАТ — уход от угрозы · H — паёк</p></section>}
@@ -175,9 +188,10 @@ export default function GameCanvas() {
 
       <section className="hud night-shift-progress" aria-label="Дневник и достижения"><button type="button" onClick={() => setShowDiary(true)}>ДНЕВНИК <span>{hud.relics.length}</span></button><p>АЧИВКИ {String(hud.achievements).padStart(2, "0")}</p><div className="mode-chips"><button className={hud.mode === "story" ? "is-active" : ""} type="button" onClick={() => switchMode("story")}>СМЕНА</button><button className={hud.mode === "free" ? "is-active" : ""} type="button" onClick={() => switchMode("free")}>КОШМАР</button></div></section>
 
-      <TacticalMinimap map={hud.minimap} expanded={mapExpanded} onToggle={() => setMapExpanded((value) => !value)} />
+      {hud.cameraMode !== "map" && <TacticalMinimap map={hud.minimap} expanded={mapExpanded} onToggle={() => setMapExpanded((value) => !value)} />}
+      {hud.cameraMode === "map" && <FullFloorMap map={hud.minimap} onFocus={() => chooseCamera("tactical")} />}
 
-      <section className="camera-rig" aria-label="Вид камеры"><div className="camera-modes"><button type="button" className={hud.cameraMode === "tactical" ? "is-active" : ""} onClick={() => chooseCamera("tactical")}>ТАКТ</button><button type="button" className={hud.cameraMode === "third" ? "is-active" : ""} onClick={() => chooseCamera("third")}>3Л</button><button type="button" className={hud.cameraMode === "first" ? "is-active" : ""} onClick={() => chooseCamera("first")}>1Л</button></div>{hud.cameraMode === "tactical" && <label className="zoom-rail"><span>МАСШТАБ</span><input aria-label="Масштаб тактической камеры" type="range" min="0" max="1" step="0.05" value={hud.tacticalZoom} onChange={changeCameraZoom} /><i>+</i><b>−</b></label>}<button type="button" aria-label={hud.flashlightOn ? "Выключить фонарик" : "Включить фонарик"} className={hud.flashlightOn ? "flashlight-chip is-on" : "flashlight-chip"} onClick={() => send("ai-core-flashlight")}>{hud.flashlightOn ? "☼" : "○"}</button></section>
+      <section className="camera-rig" aria-label="Вид камеры"><div className="camera-modes"><button type="button" className={hud.cameraMode === "map" ? "is-active" : ""} onClick={() => chooseCamera("map")}>2D</button><button type="button" className={hud.cameraMode === "tactical" ? "is-active" : ""} onClick={() => chooseCamera("tactical")}>ТАКТ</button><button type="button" className={hud.cameraMode === "third" ? "is-active" : ""} onClick={() => chooseCamera("third")}>3Л</button><button type="button" className={hud.cameraMode === "first" ? "is-active" : ""} onClick={() => chooseCamera("first")}>1Л</button></div>{hud.cameraMode === "tactical" && <label className="zoom-rail"><span>МАСШТАБ</span><input aria-label="Масштаб тактической камеры" type="range" min="0" max="1" step="0.05" value={hud.tacticalZoom} onChange={changeCameraZoom} /><i>+</i><b>−</b></label>}<button type="button" aria-label={hud.flashlightOn ? "Выключить фонарик" : "Включить фонарик"} className={hud.flashlightOn ? "flashlight-chip is-on" : "flashlight-chip"} onClick={() => send("ai-core-flashlight")}>{hud.flashlightOn ? "☼" : "○"}</button></section>
 
       <section className="hud hud-bottom-left controls-card" aria-label="Управление с клавиатуры"><p><kbd>WASD</kbd> ДВИЖЕНИЕ</p><p><kbd>Q</kbd> ПРЫЖОК <kbd>⇧</kbd> ТЕЛЕПОРТ</p><p><kbd>SPACE</kbd> БЛАСТЕР <kbd>F</kbd> СВЯЗЬ <kbd>C</kbd> СКАН</p></section>
       <section className="hud hud-bottom-right sentinel-card" aria-live="polite"><span className={`sentinel-dot ${hud.sentinelMode}`} /><p>{statusLabel}</p></section>

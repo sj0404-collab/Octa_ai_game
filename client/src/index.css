@@ -71,6 +71,15 @@ button, kbd { font: inherit; }
 .tactical-vision { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity 180ms var(--ease-out, ease-out); background: radial-gradient(ellipse 48% 38% at 47% 52%, rgba(0, 5, 14, 0) 0 40%, rgba(0, 5, 14, 0.07) 58%, rgba(0, 5, 14, 0.58) 100%); }
 .tactical-vision.is-active { opacity: 1; }
 .tactical-vision.is-active.is-scanning { background: radial-gradient(ellipse 70% 54% at 47% 52%, rgba(0, 5, 14, 0) 0 48%, rgba(0, 5, 14, 0.06) 64%, rgba(0, 5, 14, 0.46) 100%); }
+.parallax-plane { position: absolute; z-index: 2; inset: -8%; pointer-events: none; opacity: 0.22; transition: transform 180ms linear, opacity 180ms var(--ease-out, ease-out); }
+.parallax-far { background: repeating-linear-gradient(90deg, transparent 0 4.8rem, rgba(90, 184, 229, 0.08) 4.9rem 5rem), linear-gradient(145deg, transparent 36%, rgba(49, 157, 203, 0.12) 36.2% 36.6%, transparent 36.8%); }
+.parallax-near { opacity: 0.14; background: radial-gradient(ellipse 36% 12% at 20% 35%, rgba(71, 226, 207, 0.18), transparent 72%), radial-gradient(ellipse 30% 16% at 77% 70%, rgba(255, 107, 99, 0.1), transparent 70%); mix-blend-mode: screen; }
+.parallax-plane.mode-map { opacity: 0.04; }
+.full-floor-map { position: absolute; z-index: 7; inset: clamp(5.6rem, 10vh, 8.4rem) clamp(2.4rem, 12vw, 11rem) clamp(3.8rem, 8vh, 6rem); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 0.6rem; padding: 0.8rem; border: 1px solid rgba(120, 220, 213, 0.5); color: #e9fffc; background: linear-gradient(135deg, rgba(2, 14, 32, 0.86), rgba(4, 37, 58, 0.74)); box-shadow: 0 24px 72px rgba(0, 0, 0, 0.5), inset 0 0 46px rgba(96, 246, 212, 0.08); clip-path: polygon(0 3%, 3% 0, 97% 0, 100% 3%, 100% 96%, 97% 100%, 3% 100%, 0 97%); backdrop-filter: blur(10px); pointer-events: auto; }
+.full-floor-map header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font: 600 0.52rem/1.2 "JetBrains Mono", monospace; letter-spacing: 0.08em; }
+.full-floor-map header span { display: grid; gap: 0.22rem; }.full-floor-map header i { color: rgba(192, 238, 239, 0.64); font-size: 0.38rem; font-style: normal; }.full-floor-map header button { border: 1px solid rgba(96, 246, 212, 0.65); color: #00171e; background: #60f6d4; padding: 0.5rem 0.7rem; font: 700 0.4rem/1 "JetBrains Mono", monospace; cursor: pointer; }
+.full-floor-map-canvas { position: relative; display: grid; min-height: 0; border: 1px solid rgba(128, 211, 230, 0.22); color: inherit; background: radial-gradient(ellipse at 50% 46%, rgba(27, 95, 108, 0.42), rgba(2, 11, 24, 0.82)); cursor: pointer; overflow: hidden; }.full-floor-map-canvas svg { width: 100%; height: 100%; min-height: 0; }.full-floor-map-canvas > span { position: absolute; right: 0.65rem; bottom: 0.55rem; color: rgba(226, 253, 248, 0.65); font: 600 0.34rem/1 "JetBrains Mono", monospace; letter-spacing: 0.08em; }
+@media (orientation: portrait) and (max-width: 640px) { .full-floor-map { inset: 6rem 0.5rem 0.9rem; gap: 0.45rem; padding: 0.55rem; } .full-floor-map header { font-size: 0.42rem; } .full-floor-map header i { font-size: 0.31rem; } .full-floor-map header button { padding: 0.4rem 0.45rem; font-size: 0.33rem; } .full-floor-map-canvas > span { right: 0.42rem; bottom: 0.4rem; font-size: 0.25rem; } }
 .threat-field { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity 180ms var(--ease-out, ease-out); overflow: hidden; }
 .threat-field span, .threat-field i { position: absolute; display: block; transform-origin: 100% 50%; }
 .threat-field span { right: -8%; top: 34%; width: 47%; height: 22%; border: 1px solid rgba(255, 107, 99, 0.42); background: linear-gradient(90deg, transparent, rgba(255, 107, 99, 0.18)); clip-path: polygon(0 49%, 100% 0, 100% 100%); transform: rotate(-18deg); }
@@ -157,6 +166,7 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
 .minimap-title i { color: #60f6d4; font-style: normal; }
 .minimap-svg { display: block; width: 100%; height: 100%; min-height: 0; overflow: visible; border: 1px solid rgba(150, 208, 223, 0.1); background: radial-gradient(circle at 52% 48%, rgba(33, 93, 103, 0.28), rgba(3, 10, 23, 0.62)); }
 .map-boundary { fill: rgba(8, 22, 38, 0.58); stroke: rgba(142, 220, 220, 0.21); stroke-width: 0.16; }
+.map-corridor { fill: rgba(73, 176, 176, 0.22); stroke: rgba(142, 231, 219, 0.44); stroke-width: 0.12; }
 .map-room { fill: rgba(9, 24, 39, 0.65); stroke: rgba(102, 147, 166, 0.28); stroke-width: 0.17; opacity: 0.28; transition: opacity 140ms linear, fill 140ms linear; }
 .map-room.is-discovered { opacity: 1; fill: rgba(77, 168, 170, 0.23); stroke: rgba(154, 238, 226, 0.75); }
 .map-room.kind-vault.is-discovered { fill: rgba(224, 152, 69, 0.28); stroke: #e7b15c; }
@@ -460,7 +470,7 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
 
 @media (orientation: portrait) and (max-width: 640px) {
   .camera-rig { top: 46%; left: 0.75rem; gap: 0.35rem; transform: none; }
-  .camera-modes { grid-template-columns: repeat(3, 1.78rem); gap: 0.16rem; }
+  .camera-modes { grid-template-columns: repeat(4, 1.78rem); gap: 0.16rem; }
   .camera-modes button { width: 1.78rem; height: 1.78rem; font-size: 0.38rem; }
   .zoom-rail { position: absolute; top: 2.1rem; left: 0; min-width: 1.78rem; padding: 0.34rem 0.15rem; }
   .zoom-rail input { width: 4.15rem; margin: 1.35rem -1.75rem; }
@@ -501,7 +511,7 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
   .map-route-readout i { font-size: 0.21rem; }
   .tactical-minimap:not(.is-expanded) .map-legend { display: none; }
   .camera-rig { top: 39%; left: 0.45rem; gap: 0.2rem; }
-  .camera-modes { grid-template-columns: repeat(3, 1.48rem); gap: 0.1rem; }
+  .camera-modes { grid-template-columns: repeat(4, 1.48rem); gap: 0.1rem; }
   .camera-modes button { width: 1.48rem; height: 1.48rem; font-size: 0.32rem; }
   .zoom-rail { top: 1.72rem; min-width: 1.48rem; padding: 0.24rem 0.1rem; }
   .zoom-rail input { width: 3.35rem; margin: 1.08rem -1.45rem; }

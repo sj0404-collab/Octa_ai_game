@@ -26,7 +26,7 @@ export async function createGameScene(engine: Engine, _canvas: HTMLCanvasElement
   const camera = new ArcRotateCamera("reactor-camera", -Math.PI / 2, 0.34, 20, new Vector3(0, 0, 0), scene);
   camera.fov = 0.87;
   camera.lowerRadiusLimit = 0.55;
-  camera.upperRadiusLimit = 28;
+  camera.upperRadiusLimit = 38;
   camera.lowerBetaLimit = 0.18;
   camera.upperBetaLimit = 1.32;
   camera.minZ = 0.025;

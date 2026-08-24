@@ -26,7 +26,7 @@ export class InputManager {
 
   private readonly onKeyDown = (event: KeyboardEvent) => {
     const key = event.key.toLowerCase();
-    if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "w", "a", "s", "d", "r", "enter", "q", "e", "f", "c", "l", "h", "shift", "control", "x", "1", "2", "3"].includes(key)) event.preventDefault();
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "w", "a", "s", "d", "r", "enter", "q", "e", "f", "c", "l", "h", "m", "shift", "control", "x", "1", "2", "3"].includes(key)) event.preventDefault();
     this.keys.add(key);
     if (key === " ") this.pulseQueued = true;
     if (key === "q") this.jumpQueued = true;
@@ -36,6 +36,7 @@ export class InputManager {
     if (key === "f" || key === "e") this.interactQueued = true;
     if (key === "r") this.restartQueued = true;
     if (key === "enter") this.nextSectorQueued = true;
+    if (key === "m") this.cameraModeQueued = "map";
     if (key === "1") this.cameraModeQueued = "tactical";
     if (key === "2") this.cameraModeQueued = "third";
     if (key === "3") this.cameraModeQueued = "first";

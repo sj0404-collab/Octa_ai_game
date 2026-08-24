@@ -137,4 +137,14 @@
 - [x] Synchronize the local project and GitHub working copy against the exported `main` revision.
 - [x] Implement access-card doors with clear route requirements, responsive opening feedback, and a useful alternate-route payoff.
 - [x] Validate the slice in mobile camera modes and Android packaging.
-- [ ] Commit and push the verified follow-up revision to `sj0404-collab/Octa_ai_game`.
+- [x] Commit and push the verified follow-up revision to `sj0404-collab/Octa_ai_game`.
+
+## 2D navigation and action-camera overhaul
+
+- [x] Trace the upside-down/disappearing player states and unsafe enemy pursuit presentation shown in the real mobile screenshots.
+- [x] Stabilize player orientation, visibility resets, and a readable semi-3D worker rig across tactical, 3Л, and 1Л modes.
+- [x] Rebalance pursuer speed, enforce shared wall collision, and add an always-readable coral threat ring/cone and identity silhouette.
+- [x] Add a full-level interactive 2D map mode that exposes rooms, corridor links, player, objectives, and known threats, with a one-tap return to player focus.
+- [x] Keep semi-3D action modes and add only depth-appropriate background parallax layers.
+- [x] Validate map, tactical, and 3Л framing at portrait size; build and verify the signed Android v1.4.0 APK/AAB.
+- [ ] Push the verified navigation/camera update to `sj0404-collab/Octa_ai_game`.

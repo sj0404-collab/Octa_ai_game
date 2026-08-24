@@ -32,6 +32,11 @@
 - **Approach:** Generate a cardinal room graph with deliberate corridor links and loop routes. Each connection creates a doorway gap; all remaining room sides become physical walls with animated glass windows and door frames. A tactical-only local-vision mask follows the player, expands temporarily under scanner pulse, and keeps the discovered minimap as the strategic reference.
 - **Verify:** The first portrait viewport is visually enclosed by rooms/corridors rather than empty ground; doors and windows visibly animate; walls block direct enemy sight; tactical view reveals a local illuminated bubble while the map preserves discovered topology.
 
+### 7. Linked full-floor 2D navigation and readable action camera
+- **Why isolated:** A compact minimap does not resolve loss of orientation on a tall phone, while a semi-3D action view can hide or invert a flat player card and make pursuers feel arbitrary.
+- **Approach:** Provide a dedicated `2D` overview camera and full-floor SVG map that reveal the generated room-and-corridor graph, active objectives, player heading, and known threats. A single tap returns to player-focused tactical action. Stabilize the player plane's upward face and reinforce it with a small semi-3D body rig. Pursuers use a visible coral signal ring/cone, reduced chase speeds, a smaller catch distance, and the same collision resolver as the player. Use only low-opacity viewport background parallax so controls and playable geometry stay stable.
+- **Verify:** On a 360×806 portrait viewport, the `2D`, `ТАКТ`, and `3Л` controls all frame a visible player; the 2D panel displays linked corridors and restores player focus on tap; pursuer cones and coral rings remain visible; TypeScript, production build, and signed Android v1.4.0 package verification pass.
+
 ## Main build
 
 Build a top-down office nightmare that stays kinetic and readable on a phone: polished 2.5D geometry, animated PNG hero, persistent 3D pursuers, tightly furnished rooms, movement hazards and nonlethal escape. The main run is `scout → reclaim → extract`, while narrative rewards explain why a safe, a watch or a key matters.
