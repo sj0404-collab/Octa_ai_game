@@ -60,6 +60,8 @@ export class InputManager {
   private readonly onTouchPulse = () => { this.pulseQueued = true; };
   private readonly onTouchJump = () => { this.jumpQueued = true; };
   private readonly onTouchDash = () => { this.dashQueued = true; };
+  private readonly onTouchRoll = () => { this.rollQueued = true; };
+  private readonly onTouchCrouch = () => { this.crouchQueued = true; };
   private readonly onTouchInteract = () => { this.interactQueued = true; };
   private readonly onTouchScan = () => { this.scanQueued = true; };
   private readonly onEventChoice = (event: Event) => { this.eventChoiceQueued = (event as CustomEvent<{ choice: "guide" | "core" | "roulette" }>).detail.choice; };
@@ -83,6 +85,8 @@ export class InputManager {
     window.addEventListener("ai-core-pulse", this.onTouchPulse);
     window.addEventListener("ai-core-jump", this.onTouchJump);
     window.addEventListener("ai-core-dash", this.onTouchDash);
+    window.addEventListener("ai-core-roll", this.onTouchRoll);
+    window.addEventListener("ai-core-crouch", this.onTouchCrouch);
     window.addEventListener("ai-core-interact", this.onTouchInteract);
     window.addEventListener("ai-core-scan", this.onTouchScan);
     window.addEventListener("ai-core-event-choice", this.onEventChoice);
@@ -141,6 +145,8 @@ export class InputManager {
     window.removeEventListener("ai-core-pulse", this.onTouchPulse);
     window.removeEventListener("ai-core-jump", this.onTouchJump);
     window.removeEventListener("ai-core-dash", this.onTouchDash);
+    window.removeEventListener("ai-core-roll", this.onTouchRoll);
+    window.removeEventListener("ai-core-crouch", this.onTouchCrouch);
     window.removeEventListener("ai-core-interact", this.onTouchInteract);
     window.removeEventListener("ai-core-scan", this.onTouchScan);
     window.removeEventListener("ai-core-event-choice", this.onEventChoice);

@@ -148,3 +148,16 @@
 - [x] Keep semi-3D action modes and add only depth-appropriate background parallax layers.
 - [x] Validate map, tactical, and 3Л framing at portrait size; build and verify the signed Android v1.4.0 APK/AAB.
 - [x] Push the verified navigation/camera update to `sj0404-collab/Octa_ai_game`.
+
+## Staged end-to-end verification
+
+- [x] Repair missing `ai-core-roll` and `ai-core-crouch` touch-event mappings discovered during staged input review.
+- [x] Validate TypeScript, production bundle, startup, and fresh browser console output.
+- [x] Verify tactical, 2D overview, third-person, and first-person portrait framing plus linked map return.
+- [x] Exercise the keyboard/touch event contract, shared collision paths, tools, doors, scan, flashlight, roll, teleport, and stun dispatch through the active gameplay loop.
+- [x] Verify pursuer visibility, collision-resolved pursuit, alert states, and threat signalling through live views and the active AI loop.
+- [x] Verify debug Android APK packaging after the recovered runtime-asset manifest update.
+- [x] Make Capacitor runtime-asset preparation recover missing local source copies from the existing project storage URLs.
+- [ ] Rebuild and verify signed Android v1.4.0 APK/AAB package metadata.
+- [ ] Restore the original private release keystore and ignored `keystore.properties` before attempting another signed update package; do not replace the signing identity.
+- [x] Record all pass/fail findings and any residual device-only checks.
