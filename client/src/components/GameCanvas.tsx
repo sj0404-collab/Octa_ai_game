@@ -12,7 +12,7 @@ const INITIAL_HUD: HUDSnapshot = {
   charges: 0, maxCharges: 5, secondsLeft: 90, sentinelMode: "patrol", status: "playing",
   message: "СОБЕРИТЕ РЕЛЕ И НАЙДИТЕ ВЫХОД", pulseReady: false, sector: 1, sectorName: "ПЕРИМЕТР",
   totalSectors: 3, score: 0, usedPulses: 0, grade: null, health: 2, maxHealth: 2, stealth: 100,
-  noise: 0, shell: "echo", jumpReady: true, dashReady: true, rollReady: true, crouching: false, flashlightOn: true, canInteract: false, event: null, ending: null, mode: "story", money: 0, rations: 0, runCash: 0, relics: [], achievements: 0, cameraMode: "tactical", tacticalZoom: 0.52, hasCheckpoint: false, minimap: { rooms: [], corridors: [], markers: [], player: { x: -15.2, z: 9.4 }, heading: { x: 0, z: 1 }, breadcrumbs: [], waypoint: null, waypointLabel: null, discoveredRooms: 0, totalRooms: 0, alert: "patrol", scannerReady: true, scannerCooldown: 0, scanActive: false },
+  noise: 0, shell: "echo", jumpReady: true, dashReady: true, rollReady: true, sprinting: false, crouching: false, flashlightOn: true, canInteract: false, event: null, ending: null, mode: "story", money: 0, rations: 0, runCash: 0, relics: [], achievements: 0, cameraMode: "tactical", tacticalZoom: 0.52, hasCheckpoint: false, minimap: { rooms: [], corridors: [], markers: [], player: { x: -15.2, z: 9.4 }, heading: { x: 0, z: 1 }, breadcrumbs: [], waypoint: null, waypointLabel: null, discoveredRooms: 0, totalRooms: 0, alert: "patrol", scannerReady: true, scannerCooldown: 0, scanActive: false },
 };
 
 const TUTORIAL_STEPS = [
@@ -147,6 +147,8 @@ export default function GameCanvas() {
     setStickOffset({ x: 0, y: 0 }); setTouchAxis(0, 0);
   };
   const trigger = (name: string) => (event: ReactPointerEvent<HTMLButtonElement>) => { event.preventDefault(); send(name); };
+  const startSprint = (event: ReactPointerEvent<HTMLButtonElement>) => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); send("ai-core-sprint-start"); };
+  const stopSprint = (event?: ReactPointerEvent<HTMLButtonElement>) => { if (event?.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); send("ai-core-sprint-stop"); };
   const nextSensitivity = () => setSensitivity((value) => value >= 1.25 ? 0.75 : Number((value + 0.25).toFixed(2)));
   const chooseEvent = (choice: "guide" | "core" | "roulette") => window.dispatchEvent(new CustomEvent("ai-core-event-choice", { detail: { choice } }));
   const chooseCamera = (mode: "map" | "tactical" | "third" | "first") => window.dispatchEvent(new CustomEvent("ai-core-camera-mode", { detail: { mode } }));
@@ -199,6 +201,7 @@ export default function GameCanvas() {
 
       {!showTutorial && <section className="touch-controls rogue-touch-controls" aria-label="Сенсорное управление">
         <button ref={joystickRef} type="button" className="touch-joystick" aria-label="Джойстик движения" onPointerDown={startJoystick} onPointerMove={updateJoystick} onPointerUp={stopJoystick} onPointerCancel={stopJoystick} onLostPointerCapture={stopJoystick} onContextMenu={(event) => event.preventDefault()}><span className="joystick-cross" aria-hidden="true" /><span className="joystick-knob" style={{ transform: `translate(${stickOffset.x}px, ${stickOffset.y}px)` }} aria-hidden="true" /><span className="touch-label">ВЕКТОР</span></button>
+        <button type="button" className={hud.sprinting ? "touch-sprint is-active" : "touch-sprint"} onPointerDown={startSprint} onPointerUp={stopSprint} onPointerCancel={stopSprint} onLostPointerCapture={stopSprint}><strong>БЕГ</strong><small>{hud.sprinting ? "СПРИНТ" : "УДЕРЖИВАЙТЕ"}</small></button>
         <div className="touch-action-stack">
           <button type="button" className={hud.jumpReady ? "touch-action is-ready" : "touch-action"} onPointerDown={trigger("ai-core-jump")}><strong>ПРЫЖОК</strong><small>{hud.jumpReady ? "ГОТОВ" : "ОЖИДАНИЕ"}</small></button>
           <button type="button" className={hud.rollReady ? "touch-action touch-roll is-ready" : "touch-action touch-roll"} onPointerDown={trigger("ai-core-roll")}><strong>ПЕРЕКАТ</strong><small>{hud.rollReady ? "УЙТИ ОТ УГРОЗЫ" : "ОЖИДАНИЕ"}</small></button>

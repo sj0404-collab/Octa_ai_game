@@ -91,6 +91,7 @@ export interface HUDSnapshot {
   jumpReady: boolean;
   dashReady: boolean;
   rollReady: boolean;
+  sprinting: boolean;
   crouching: boolean;
   flashlightOn: boolean;
   canInteract: boolean;

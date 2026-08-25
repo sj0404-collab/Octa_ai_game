@@ -31,6 +31,7 @@ export class Player {
   private jumpTime = 0;
   private rollTime = 0;
   private rollCooldown = 0;
+  private sprinting = false;
   private crouching = false;
   private invulnerableTime = 0;
   private readonly trails: TrailPulse[] = [];
@@ -76,11 +77,12 @@ export class Player {
   get isTeleporting() { return this.teleportTime > 0; }
   get isRolling() { return this.rollTime > 0; }
   get rollReady() { return this.rollCooldown <= 0; }
+  get isSprinting() { return this.sprinting; }
   get isCrouching() { return this.crouching; }
   setShell(shell: ShellId) { this.shell = shell; this.health = Math.min(this.maxHealth, this.health + 1); (this.mesh.material as StandardMaterial).emissiveColor = SHELL_COLORS[shell]; }
 
   reset() {
-    this.position = { x: -8.9, z: 4.7 }; this.charges = 1; this.health = this.maxHealth; this.stealth = 100; this.noise = 0; this.isCovered = false; this.pulseCooldown = 0; this.teleportCooldown = 0; this.teleportTime = 0; this.jumpTime = 0; this.rollTime = 0; this.rollCooldown = 0; this.crouching = false; this.flashlightOn = true; this.invulnerableTime = 0; this.pulseRadius = 0;
+    this.position = { x: -8.9, z: 4.7 }; this.charges = 1; this.health = this.maxHealth; this.stealth = 100; this.noise = 0; this.isCovered = false; this.pulseCooldown = 0; this.teleportCooldown = 0; this.teleportTime = 0; this.jumpTime = 0; this.rollTime = 0; this.rollCooldown = 0; this.sprinting = false; this.crouching = false; this.flashlightOn = true; this.invulnerableTime = 0; this.pulseRadius = 0;
     this.mesh.setEnabled(true); this.mesh.isVisible = true; this.coreBeacon.setEnabled(true); this.coreBeacon.isVisible = true; this.body.setEnabled(true); this.body.isVisible = true; this.head.setEnabled(true); this.head.isVisible = true; this.mesh.position.set(this.position.x, 0.42, this.position.z); this.body.position.set(this.position.x, 0.34, this.position.z); this.head.position.set(this.position.x, 0.77, this.position.z); this.mesh.rotation.set(-Math.PI / 2, 0, 0); this.spriteTexture.uOffset = 0;
     this.trails.forEach((trail) => trail.mesh.dispose()); this.pulseRings.forEach((ring) => ring.mesh.dispose()); this.trails.length = 0; this.pulseRings.length = 0;
   }
@@ -88,11 +90,12 @@ export class Player {
   setFirstPerson(enabled: boolean) { const visible = !enabled; this.mesh.setEnabled(visible); this.coreBeacon.setEnabled(visible); this.body.setEnabled(visible); this.head.setEnabled(visible); this.mesh.isVisible = visible; this.coreBeacon.isVisible = visible; this.body.isVisible = visible; this.head.isVisible = visible; this.trails.forEach((trail) => { trail.mesh.isVisible = visible; }); this.pulseRings.forEach((ring) => { ring.mesh.isVisible = visible; }); }
   setSpawn(position: Point2) { this.position = { ...position }; this.mesh.position.set(position.x, 0.42, position.z); this.body.position.set(position.x, 0.34, position.z); this.head.position.set(position.x, 0.77, position.z); }
 
-  update(delta: number, direction: Point2, resolveMove?: (from: Point2, wanted: Point2) => Point2) {
+  update(delta: number, direction: Point2, resolveMove?: (from: Point2, wanted: Point2) => Point2, sprintRequested = false) {
     this.pulseCooldown = Math.max(0, this.pulseCooldown - delta); this.teleportCooldown = Math.max(0, this.teleportCooldown - delta); this.teleportTime = Math.max(0, this.teleportTime - delta); this.jumpTime = Math.max(0, this.jumpTime - delta); this.rollTime = Math.max(0, this.rollTime - delta); this.rollCooldown = Math.max(0, this.rollCooldown - delta); this.invulnerableTime = Math.max(0, this.invulnerableTime - delta);
     const moving = Math.hypot(direction.x, direction.z) > 0.01;
     const profile = SHELLS[this.shell];
-    const speed = 5.75 * profile.speedMultiplier * (this.isTeleporting ? 1.3 : this.isRolling ? 1.72 : this.crouching ? 0.48 : 1);
+    this.sprinting = sprintRequested && moving && !this.crouching && !this.isRolling && !this.isTeleporting;
+    const speed = 5.75 * profile.speedMultiplier * (this.isTeleporting ? 1.3 : this.isRolling ? 1.72 : this.crouching ? 0.48 : this.sprinting ? 1.42 : 1);
     if (moving) {
       const wanted = { x: this.position.x + direction.x * speed * delta, z: this.position.z + direction.z * speed * delta };
       const resolved = resolveMove ? resolveMove(this.position, wanted) : wanted;
@@ -103,7 +106,7 @@ export class Player {
         if (this.trailTimer <= 0) { this.trailTimer = this.isTeleporting ? 0.085 : 0.095; this.addTrail(); }
       }
     }
-    const exposedDrain = this.crouching || this.isCovered ? -34 : moving ? 7 : -10;
+    const exposedDrain = this.crouching || this.isCovered ? -34 : this.sprinting ? 19 : moving ? 7 : -10;
     this.stealth = clamp(this.stealth - exposedDrain * profile.stealthMultiplier * delta - this.noise * 0.022 * delta, 0, 100);
     this.noise = Math.max(0, this.noise - delta * (this.isCovered ? 48 : 22));
     const airborneHeight = this.jumpTime > 0 ? Math.sin((1 - this.jumpTime / 0.46) * Math.PI) * 0.95 : 0;
@@ -119,7 +122,7 @@ export class Player {
 
   tryPulse() { if (this.charges < 1 || this.pulseCooldown > 0) return false; this.charges -= 1; this.pulseCooldown = 0.82; this.pulseRadius = 3.85; this.addRing(0.35, 0.56, MINT); this.noise = Math.min(100, this.noise + 48); return true; }
   tryJump() { if (!this.jumpReady) return false; this.jumpTime = 0.46; this.noise = Math.min(100, this.noise + 18); this.addRing(0.2, 0.3, new Color3(0.72, 0.95, 1)); return true; }
-  tryRoll(direction: Point2, resolveMove?: (from: Point2, wanted: Point2) => Point2) { if (!this.rollReady || this.isAirborne || this.isTeleporting) return false; const fallback = { x: Math.sin(this.facing), z: Math.cos(this.facing) }; const axis = Math.hypot(direction.x, direction.z) > 0.1 ? direction : fallback; const wanted = { x: this.position.x + axis.x * 1.72, z: this.position.z + axis.z * 1.72 }; const resolved = resolveMove ? resolveMove(this.position, wanted) : wanted; if (Math.hypot(resolved.x - this.position.x, resolved.z - this.position.z) < 0.42) return false; this.position = resolved; this.rollTime = 0.3; this.rollCooldown = 1.1; this.invulnerableTime = 0.16; this.noise = Math.min(100, this.noise + 12); this.addRing(0.2, 0.22, new Color3(0.65, 0.95, 0.9)); return true; }
+  tryRoll(direction: Point2, resolveMove?: (from: Point2, wanted: Point2) => Point2) { if (!this.rollReady || this.isAirborne || this.isTeleporting) return false; const fallback = { x: Math.sin(this.facing), z: Math.cos(this.facing) }; const axis = Math.hypot(direction.x, direction.z) > 0.1 ? direction : fallback; const wanted = { x: this.position.x + axis.x * 1.42, z: this.position.z + axis.z * 1.42 }; const resolved = resolveMove ? resolveMove(this.position, wanted) : wanted; if (Math.hypot(resolved.x - this.position.x, resolved.z - this.position.z) < 0.14) return false; this.position = resolved; this.rollTime = 0.34; this.rollCooldown = 0.82; this.invulnerableTime = 0.2; this.noise = Math.min(100, this.noise + 12); this.addRing(0.24, 0.26, new Color3(0.65, 0.95, 0.9)); return true; }
   toggleCrouch() { this.crouching = !this.crouching; return this.crouching; }
   toggleFlashlight() { this.flashlightOn = !this.flashlightOn; return this.flashlightOn; }
   get isFlashlightOn() { return this.flashlightOn; }

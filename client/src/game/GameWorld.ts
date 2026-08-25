@@ -94,9 +94,10 @@ export class GameWorld {
     if (this.status === "playing") {
       this.secondsLeft = Math.max(0, this.secondsLeft - delta);
       const direction = this.demoMode ? this.getDemoDirection() : this.input.getMoveAxis();
+      const sprintRequested = !this.demoMode && this.input.isSprinting();
       if (this.input.consumeJump() && this.player.tryJump()) this.emitSound("jump");
       if (this.input.consumeDash() && this.player.tryTeleport(direction, (from, wanted) => this.environment.resolveMovement(from, wanted))) this.emitSound("teleport");
-      if (this.input.consumeRoll() && this.player.tryRoll(direction, (from, wanted) => this.environment.resolveMovement(from, wanted))) this.emitSound("jump");
+      if (this.input.consumeRoll()) { if (this.player.tryRoll(direction, (from, wanted) => this.environment.resolveMovement(from, wanted))) this.emitSound("jump"); else this.emitVoice("Перекат заблокирован. Выберите свободное направление."); }
       if (this.input.consumeCrouch()) this.player.toggleCrouch();
       if (this.input.consumeFlashlight()) this.player.toggleFlashlight();
       if (this.input.consumeRation() && this.progress.consumeRation()) { this.player.heal(1); this.emitSound("heal"); this.emitVoice("Паёк использован. Целостность восстановлена."); }
@@ -105,7 +106,7 @@ export class GameWorld {
         if (terminal) this.openTerminalEvent(terminal.kind);
         else { const doorResult = this.environment.openNearbyDoor(this.player.position, this.player.charges); if (doorResult === "opened") { this.emitSound("door"); this.emitVoice("Пропуск подтверждён. Боковой маршрут открыт."); } else if (doorResult === "locked") { this.emitSound("door"); this.emitVoice("Дверь требует два допуска. Найдите ещё один пропуск."); } }
       }
-      this.player.update(delta, direction, (from, wanted) => this.environment.resolveMovement(from, wanted));
+      this.player.update(delta, direction, (from, wanted) => this.environment.resolveMovement(from, wanted), sprintRequested);
       this.updateMapDiscovery();
       this.updateBreadcrumbs(delta);
       if (this.input.consumeScan()) this.triggerScanner();
@@ -159,7 +160,7 @@ export class GameWorld {
     const snapshot: HUDSnapshot = {
       charges: this.player.charges, maxCharges: this.currentSector.chargesRequired, secondsLeft: Math.ceil(this.secondsLeft), sentinelMode: this.enemies.mode, status: this.status,
       pulseReady: this.player.charges > 0 && this.player.pulseCooldown <= 0, sector: this.currentSector.id, sectorName: this.currentSector.codeName, totalSectors: SECTORS.length, score: this.score, usedPulses: this.usedPulses, grade: this.grade,
-      health: this.player.health, maxHealth: this.player.maxHealth, stealth: Math.round(this.player.stealth), noise: Math.round(this.player.noise), shell: this.player.shell, jumpReady: this.player.jumpReady, dashReady: this.player.dashReady, rollReady: this.player.rollReady, crouching: this.player.isCrouching, flashlightOn: this.player.isFlashlightOn, canInteract: this.environment.canInteract(this.player.position), event: this.currentEvent, ending: this.ending, mode: this.mode, money: this.progress.profile.money, rations: this.progress.profile.rations, runCash: this.runCash, relics: this.progress.profile.relics, achievements: this.progress.profile.achievements.length, cameraMode: this.cameraMode, tacticalZoom: this.input.getTacticalZoom(), hasCheckpoint: Boolean(this.progress.profile.checkpoint), minimap: this.buildMinimap(isExitActive),
+      health: this.player.health, maxHealth: this.player.maxHealth, stealth: Math.round(this.player.stealth), noise: Math.round(this.player.noise), shell: this.player.shell, jumpReady: this.player.jumpReady, dashReady: this.player.dashReady, rollReady: this.player.rollReady, sprinting: this.player.isSprinting, crouching: this.player.isCrouching, flashlightOn: this.player.isFlashlightOn, canInteract: this.environment.canInteract(this.player.position), event: this.currentEvent, ending: this.ending, mode: this.mode, money: this.progress.profile.money, rations: this.progress.profile.rations, runCash: this.runCash, relics: this.progress.profile.relics, achievements: this.progress.profile.achievements.length, cameraMode: this.cameraMode, tacticalZoom: this.input.getTacticalZoom(), hasCheckpoint: Boolean(this.progress.profile.checkpoint), minimap: this.buildMinimap(isExitActive),
       message: this.status === "event" ? "КОРПОРАТИВНЫЙ УЗЕЛ ЖДЁТ РЕШЕНИЯ" : this.status === "campaign-complete" ? "СМЕНА ЗАКРЫТА — ВЫ СОХРАНИЛИ СВОЁ" : this.status === "won" ? "ЭТАЖ ПРОЙДЕН — ПЕРЕХОД ДОСТУПЕН" : this.status === "lost" ? "ПАНИКА РАЗБУДИЛА ВАС ДО ВЫХОДА" : isExitActive ? "ПОЖАРНЫЙ ВЫХОД АКТИВЕН — ИДИТЕ К НЕМУ" : this.enemies.mode === "chase" ? "СЛУЖБА БЕЗОПАСНОСТИ ИДЁТ ПО СЛЕДУ" : this.environment.isNearMovingWall(this.player.position) ? "СДВИЖНАЯ ПЕРЕГОРОДКА ШУМИТ — НЕ ЗАДЕРЖИВАЙТЕСЬ" : this.environment.isNearbyDoorLocked(this.player.position) ? `БОКОВАЯ ДВЕРЬ: ${this.player.charges}/2 ПРОПУСКА — НАЖМИТЕ СВЯЗЬ` : this.environment.getNearbyDoor(this.player.position) ? "ДВЕРЬ ЗАКРЫТА — НАЖМИТЕ СВЯЗЬ" : this.environment.canInteract(this.player.position) ? "РАБОЧИЙ УЗЕЛ ДОСТУПЕН — НАЖМИТЕ СВЯЗЬ" : this.player.charges > 0 ? "БЛАСТЕР ГОТОВ — ОГЛУШИТЕ ПРЕСЛЕДОВАТЕЛЯ" : this.currentSector.objective,
     };
     window.dispatchEvent(new CustomEvent<HUDSnapshot>("ai-core-hud", { detail: snapshot }));

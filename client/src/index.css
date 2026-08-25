@@ -315,6 +315,11 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
 .touch-pulse:active, .touch-joystick:active { transform: scale(0.96); }
 
 .rogue-touch-controls .touch-pulse { bottom: max(1.15rem, env(safe-area-inset-bottom)); }
+.touch-sprint { position: absolute; z-index: 2; left: max(1.45rem, calc(env(safe-area-inset-left) + 1.25rem)); bottom: max(10.3rem, calc(env(safe-area-inset-bottom) + 8.7rem)); width: clamp(4.8rem, 18vw, 6.4rem); min-height: 2.45rem; border: 1px solid rgba(150, 207, 248, 0.48); color: rgba(224, 245, 255, 0.78); background: rgba(10, 38, 59, 0.78); box-shadow: inset 0 0 20px rgba(111, 202, 255, 0.09); font-family: "JetBrains Mono", monospace; letter-spacing: 0.06em; pointer-events: auto; touch-action: none; clip-path: polygon(12% 0, 88% 0, 100% 18%, 100% 82%, 88% 100%, 12% 100%, 0 82%, 0 18%); }
+.touch-sprint strong, .touch-sprint small { display: block; }
+.touch-sprint strong { font-size: 0.55rem; }
+.touch-sprint small { margin-top: 0.12rem; font-size: 0.38rem; }
+.touch-sprint:active, .touch-sprint.is-active { color: #f4fdff; border-color: rgba(132, 232, 255, 0.96); background: rgba(21, 107, 133, 0.88); box-shadow: 0 0 18px rgba(93, 218, 255, 0.33), inset 0 0 24px rgba(139, 240, 255, 0.2); transform: scale(0.97); }
 .touch-action-stack { position: absolute; right: max(1rem, env(safe-area-inset-right)); bottom: max(9.4rem, calc(env(safe-area-inset-bottom) + 7.1rem)); z-index: 1; display: grid; gap: 0.42rem; pointer-events: auto; }
 .touch-action { width: clamp(4.7rem, 17vw, 6.2rem); min-height: 2.75rem; border: 0; outline: 1px solid rgba(151, 196, 230, 0.35); color: rgba(231, 248, 246, 0.54); background: rgba(3, 19, 35, 0.72); box-shadow: inset 0 0 18px rgba(96, 246, 212, 0.025); font-family: "JetBrains Mono", monospace; pointer-events: auto; touch-action: manipulation; clip-path: polygon(0 0, 87% 0, 100% 18%, 100% 100%, 13% 100%, 0 82%); }
 .touch-action strong, .touch-action small { display: block; }
@@ -440,6 +445,9 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
   .map-legend i { padding: 0.1rem 0.11rem; }
   .touch-joystick { bottom: max(0.85rem, env(safe-area-inset-bottom)); left: 0.85rem; width: clamp(5.6rem, 27vw, 6.6rem); }
   .rogue-touch-controls .touch-pulse { right: 0.85rem; bottom: max(0.85rem, env(safe-area-inset-bottom)); width: clamp(5.25rem, 25vw, 6.2rem); }
+  .touch-sprint { left: 1.05rem; bottom: max(7.15rem, calc(env(safe-area-inset-bottom) + 6.2rem)); width: 4.5rem; min-height: 2rem; }
+  .touch-sprint strong { font-size: 0.43rem; }
+  .touch-sprint small { font-size: 0.32rem; }
   .touch-action-stack { right: 0.85rem; bottom: max(6.65rem, calc(env(safe-area-inset-bottom) + 5.8rem)); gap: 0.26rem; }
   .touch-action { width: 4.25rem; min-height: 2.18rem; }
   .touch-action strong { font-size: 0.4rem; }
@@ -518,6 +526,9 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
   .flashlight-chip { width: 1.48rem; min-height: 1.14rem; font-size: 0.25rem; }
   .touch-joystick { bottom: max(0.42rem, env(safe-area-inset-bottom)); left: 0.45rem; width: 4.55rem; }
   .rogue-touch-controls .touch-pulse { right: 0.45rem; bottom: max(0.42rem, env(safe-area-inset-bottom)); width: 4.2rem; }
+  .touch-sprint { left: 0.6rem; bottom: max(5.05rem, calc(env(safe-area-inset-bottom) + 4.6rem)); width: 3.85rem; min-height: 1.65rem; }
+  .touch-sprint strong { font-size: 0.34rem; }
+  .touch-sprint small { margin-top: 0.04rem; font-size: 0.26rem; }
   .touch-action-stack { right: 0.45rem; bottom: max(4.85rem, calc(env(safe-area-inset-bottom) + 4.5rem)); gap: 0.18rem; }
   .touch-action { width: 3.7rem; min-height: 1.7rem; }
   .touch-action strong { font-size: 0.32rem; }

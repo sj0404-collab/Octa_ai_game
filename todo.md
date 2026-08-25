@@ -161,3 +161,10 @@
 - [ ] Rebuild and verify signed Android v1.4.0 APK/AAB package metadata.
 - [ ] Restore the original private release keystore and ignored `keystore.properties` before attempting another signed update package; do not replace the signing identity.
 - [x] Record all pass/fail findings and any residual device-only checks.
+
+## Sprint and roll control regression
+
+- [x] Trace why the sprint and roll buttons do not produce visible movement in the current mobile build.
+- [x] Repair the event names, input state, movement rules, and HUD feedback for sprint and roll.
+- [x] Verify keyboard and portrait touch controls during active gameplay.
+- [ ] Checkpoint and push the repaired controls to GitHub.

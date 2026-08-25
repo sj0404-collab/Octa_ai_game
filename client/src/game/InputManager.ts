@@ -9,6 +9,7 @@ export class InputManager {
   private jumpQueued = false;
   private dashQueued = false;
   private rollQueued = false;
+  private sprintHeld = false;
   private crouchQueued = false;
   private interactQueued = false;
   private restartQueued = false;
@@ -26,11 +27,12 @@ export class InputManager {
 
   private readonly onKeyDown = (event: KeyboardEvent) => {
     const key = event.key.toLowerCase();
-    if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "w", "a", "s", "d", "r", "enter", "q", "e", "f", "c", "l", "h", "m", "shift", "control", "x", "1", "2", "3"].includes(key)) event.preventDefault();
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "w", "a", "s", "d", "r", "t", "enter", "q", "e", "f", "c", "l", "h", "m", "shift", "control", "x", "1", "2", "3"].includes(key)) event.preventDefault();
     this.keys.add(key);
     if (key === " ") this.pulseQueued = true;
     if (key === "q") this.jumpQueued = true;
-    if (key === "shift") this.dashQueued = true;
+    if (key === "shift") this.sprintHeld = true;
+    if (key === "t") this.dashQueued = true;
     if (key === "control" || key === "x") this.rollQueued = true;
     if (key === "e") this.crouchQueued = true;
     if (key === "f" || key === "e") this.interactQueued = true;
@@ -45,7 +47,7 @@ export class InputManager {
     if (key === "h") this.rationQueued = true;
   };
 
-  private readonly onKeyUp = (event: KeyboardEvent) => this.keys.delete(event.key.toLowerCase());
+  private readonly onKeyUp = (event: KeyboardEvent) => { const key = event.key.toLowerCase(); this.keys.delete(key); if (key === "shift") this.sprintHeld = false; };
   private readonly onRestart = () => { this.restartQueued = true; };
   private readonly onNextSector = () => { this.nextSectorQueued = true; };
   private readonly onTouchMove = (event: Event) => {
@@ -61,6 +63,8 @@ export class InputManager {
   private readonly onTouchJump = () => { this.jumpQueued = true; };
   private readonly onTouchDash = () => { this.dashQueued = true; };
   private readonly onTouchRoll = () => { this.rollQueued = true; };
+  private readonly onTouchSprintStart = () => { this.sprintHeld = true; };
+  private readonly onTouchSprintStop = () => { this.sprintHeld = false; };
   private readonly onTouchCrouch = () => { this.crouchQueued = true; };
   private readonly onTouchInteract = () => { this.interactQueued = true; };
   private readonly onTouchScan = () => { this.scanQueued = true; };
@@ -73,7 +77,7 @@ export class InputManager {
   private readonly onFlashlight = () => { this.flashlightQueued = true; };
   private readonly onRation = () => { this.rationQueued = true; };
   private readonly onBuyRation = () => { this.buyRationQueued = true; };
-  private readonly onWindowBlur = () => { this.keys.clear(); this.touchAxis = { x: 0, z: 0 }; };
+  private readonly onWindowBlur = () => { this.keys.clear(); this.touchAxis = { x: 0, z: 0 }; this.sprintHeld = false; };
 
   constructor() {
     window.addEventListener("keydown", this.onKeyDown, { passive: false });
@@ -86,6 +90,8 @@ export class InputManager {
     window.addEventListener("ai-core-jump", this.onTouchJump);
     window.addEventListener("ai-core-dash", this.onTouchDash);
     window.addEventListener("ai-core-roll", this.onTouchRoll);
+    window.addEventListener("ai-core-sprint-start", this.onTouchSprintStart);
+    window.addEventListener("ai-core-sprint-stop", this.onTouchSprintStop);
     window.addEventListener("ai-core-crouch", this.onTouchCrouch);
     window.addEventListener("ai-core-interact", this.onTouchInteract);
     window.addEventListener("ai-core-scan", this.onTouchScan);
@@ -114,6 +120,7 @@ export class InputManager {
   consumeJump() { return this.consume("jumpQueued"); }
   consumeDash() { return this.consume("dashQueued"); }
   consumeRoll() { return this.consume("rollQueued"); }
+  isSprinting() { return this.sprintHeld; }
   consumeCrouch() { return this.consume("crouchQueued"); }
   consumeInteract() { return this.consume("interactQueued"); }
   consumeScan() { return this.consume("scanQueued"); }
@@ -146,6 +153,8 @@ export class InputManager {
     window.removeEventListener("ai-core-jump", this.onTouchJump);
     window.removeEventListener("ai-core-dash", this.onTouchDash);
     window.removeEventListener("ai-core-roll", this.onTouchRoll);
+    window.removeEventListener("ai-core-sprint-start", this.onTouchSprintStart);
+    window.removeEventListener("ai-core-sprint-stop", this.onTouchSprintStop);
     window.removeEventListener("ai-core-crouch", this.onTouchCrouch);
     window.removeEventListener("ai-core-interact", this.onTouchInteract);
     window.removeEventListener("ai-core-scan", this.onTouchScan);
