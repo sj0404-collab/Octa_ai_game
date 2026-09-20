@@ -1,5 +1,5 @@
 /** Night Shift design reminder: durable progress is a reclaimed record of the worker’s life, never a disposable score. */
-export interface CasualCheckpoint { sectorIndex: number; runSeed: number; x: number; z: number; charges: number; secondsLeft: number; }
+export interface CasualCheckpoint { sectorIndex: number; runSeed: number; x: number; z: number; passes: number; charges: number; secondsLeft: number; }
 export interface NightShiftProfile { money: number; rations: number; relics: string[]; achievements: string[]; completedRuns: number; checkpoint: CasualCheckpoint | null; }
 const KEY = "ai-core-night-shift-profile-v1";
 const EMPTY: NightShiftProfile = { money: 0, rations: 0, relics: [], achievements: [], completedRuns: 0, checkpoint: null };

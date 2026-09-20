@@ -45,6 +45,12 @@ button, kbd { font: inherit; }
   background: linear-gradient(112deg, transparent 0 24%, rgba(96, 246, 212, 0.035) 24.2% 24.5%, transparent 24.8% 68%, rgba(151, 196, 230, 0.04) 68.2% 68.45%, transparent 68.7%), radial-gradient(ellipse at 28% 68%, rgba(96, 246, 212, 0.045), transparent 25%), radial-gradient(ellipse at 76% 32%, rgba(255, 107, 99, 0.11), transparent 26%), radial-gradient(ellipse at center, transparent 34%, rgba(2, 4, 15, 0.035) 60%, rgba(1, 2, 10, 0.28) 100%);
 }
 
+.prism-vignette.low-health { background: linear-gradient(112deg, transparent 0 24%, rgba(255, 107, 99, 0.08) 24.2% 24.5%, transparent 24.8% 68%, rgba(255, 107, 99, 0.06) 68.2% 68.45%, transparent 68.7%), radial-gradient(ellipse at center, transparent 28%, rgba(232, 54, 54, 0.22) 62%, rgba(96, 6, 8, 0.5) 100%); animation: low-health-pulse 1.7s ease-in-out infinite; }
+@keyframes low-health-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.72; } }
+
+.impact-flash { position: absolute; inset: 0; z-index: 6; pointer-events: none; background: radial-gradient(ellipse at center, transparent 34%, rgba(255, 64, 60, 0.4) 72%, rgba(160, 18, 24, 0.62) 100%); animation: impact-glow 420ms ease-out forwards; }
+@keyframes impact-glow { from { opacity: 1; } to { opacity: 0; } }
+
 .prism-scanlines {
   position: absolute;
   inset: 0;
@@ -120,6 +126,8 @@ h1 { color: #fff; font-size: clamp(1.24rem, 2vw, 1.75rem); line-height: 0.9; let
 .charge-pips { display: flex; justify-content: center; gap: 0.42rem; }
 .charge-pip { width: 0.65rem; height: 0.65rem; transform: rotate(45deg); border: 1px solid rgba(223, 247, 244, 0.4); background: rgba(12, 33, 45, 0.5); }
 .charge-pip.is-live { border-color: #60f6d4; background: #60f6d4; box-shadow: 0 0 14px rgba(96, 246, 212, 0.92); }
+.charge-readout { margin: 0.55rem 0 0; color: rgba(216, 245, 240, 0.6); font: 500 0.52rem/1.2 "JetBrains Mono", monospace; letter-spacing: 0.1em; }
+.charge-readout strong { color: #60f6d4; font-weight: 700; }
 .timer-readout { color: #f7ffff; font: 600 clamp(1.35rem, 2.5vw, 2.25rem)/1 "JetBrains Mono", monospace; letter-spacing: -0.08em; text-shadow: 0 0 18px rgba(208, 250, 245, 0.36); }
 .score-readout { margin-top: 0.42rem; color: rgba(96, 246, 212, 0.75); font: 500 clamp(0.5rem, 0.72vw, 0.65rem)/1 "JetBrains Mono", monospace; letter-spacing: 0.08em; }
 .sensitivity-chip { margin-top: 0.5rem; border: 1px solid rgba(96, 246, 212, 0.34); color: rgba(192, 255, 241, 0.76); background: rgba(4, 24, 39, 0.62); padding: 0.28rem 0.38rem; font: 600 0.49rem/1 "JetBrains Mono", monospace; letter-spacing: 0.08em; pointer-events: auto; cursor: pointer; }
@@ -202,6 +210,8 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
 .diary-panel ul { margin: 0; padding: 0; list-style: none; }
 .diary-panel li { padding: 0.5rem 0; border-bottom: 1px solid rgba(233, 179, 91, 0.18); }
 .diary-panel li::before { padding-right: 0.55rem; content: "◇"; color: #e9b35b; }
+.diary-panel li strong { display: block; color: #fff3df; font-weight: 700; letter-spacing: 0.04em; }
+.diary-panel li small { display: block; margin-top: 0.22rem; color: rgba(246, 232, 211, 0.56); font-size: 0.6rem; line-height: 1.5; }
 .diary-achievement { margin-top: 1rem; color: #60f6d4 !important; font-size: 0.55rem !important; letter-spacing: 0.08em; }
 .diary-panel button { margin-top: 1.25rem; border: 1px solid #e9b35b; color: #17100a; background: #e9b35b; padding: 0.72rem 0.8rem; font: 700 0.65rem/1 "JetBrains Mono", monospace; letter-spacing: 0.08em; cursor: pointer; }
 .sentinel-dot { display: block; width: 0.48rem; height: 0.48rem; border-radius: 50%; background: #ff6b63; box-shadow: 0 0 12px rgba(255, 107, 99, 0.95); }
@@ -340,6 +350,9 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
 .main-menu-panel { position: absolute; z-index: 10; top: 50%; left: clamp(1rem, 11vw, 11rem); width: min(31rem, calc(100% - 2rem)); padding: clamp(1.5rem, 4vw, 3rem); transform: translateY(-50%); border: 1px solid rgba(127, 183, 213, 0.42); border-left: 3px solid #60f6d4; color: #edf8f7; background: linear-gradient(118deg, rgba(3, 15, 30, 0.75), rgba(4, 24, 36, 0.48)); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3), inset 0 0 32px rgba(96, 246, 212, 0.035); clip-path: polygon(0 4%, 4% 0, 96% 0, 100% 5%, 100% 96%, 96% 100%, 4% 100%, 0 96%); }
 .main-menu-panel::before { position: absolute; top: -2.4rem; right: 6%; width: 12rem; height: 12rem; content: ""; border: 1px solid rgba(96, 246, 212, 0.18); border-radius: 50%; box-shadow: 0 0 0 1rem rgba(96, 246, 212, 0.035), 0 0 0 2.2rem rgba(96, 246, 212, 0.02); }
 .main-menu-panel > * { position: relative; z-index: 1; }
+.menu-art { position: absolute; z-index: 0; top: 0; right: 0; bottom: 0; width: min(46%, 26rem); margin: 0; border-left: 1px solid rgba(96, 246, 212, 0.28); opacity: 0.5; overflow: hidden; }
+.menu-art::before { position: absolute; inset: 0; z-index: 1; content: ""; background: linear-gradient(90deg, rgba(3, 15, 30, 0.28), transparent 55%, rgba(2, 9, 20, 0.62)); }
+.menu-art img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.15) contrast(1.05); }
 .main-menu-panel h2 { margin: 0.56rem 0 0.92rem; color: #fff; font-size: clamp(2rem, 5.8vw, 4.2rem); line-height: 0.9; letter-spacing: -0.06em; }
 .comic-strip { display: flex; gap: 0.35rem; }
 .comic-strip i { display: grid; place-items: end start; width: 4.8rem; aspect-ratio: 1.45; padding: 0.35rem; border: 1px solid rgba(151, 196, 230, 0.28); color: rgba(225, 247, 244, 0.68); background: linear-gradient(145deg, rgba(15, 77, 90, 0.74), rgba(6, 17, 33, 0.9)); font: 600 0.36rem/1 "JetBrains Mono", monospace; letter-spacing: 0.08em; clip-path: polygon(0 8%, 8% 0, 100% 0, 100% 92%, 92% 100%, 0 100%); }
@@ -424,6 +437,7 @@ kbd { margin-right: 0.28rem; color: #60f6d4; font-size: 0.95em; letter-spacing: 
   .sector-readout { margin-top: 0.32rem; font-size: 0.45rem; }
   .hud-top-center { top: 5.25rem; right: 0.78rem; left: auto; width: 6.35rem; transform: none; text-align: right; }
   .hud-top-center .hud-kicker { display: none; }
+  .hud-top-center .charge-readout { display: none; }
   .charge-pips { justify-content: flex-end; gap: 0.3rem; }
   .charge-pip { width: 0.48rem; height: 0.48rem; }
   .hud-top-right { top: max(0.75rem, env(safe-area-inset-top)); right: 0.78rem; }

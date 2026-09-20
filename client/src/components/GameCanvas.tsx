@@ -7,19 +7,20 @@ import { Engine } from "@babylonjs/core/Engines/engine";
 import { createGameScene, type GameHandle } from "@/game/scene";
 import type { HUDSnapshot, MinimapMarkerKind, MinimapSnapshot } from "@/game/types";
 import { GAME_ASSETS } from "@/game/assets";
+import { RELIC_INFO } from "@/game/relics";
 
 const INITIAL_HUD: HUDSnapshot = {
-  charges: 0, maxCharges: 5, secondsLeft: 90, sentinelMode: "patrol", status: "playing",
-  message: "СОБЕРИТЕ РЕЛЕ И НАЙДИТЕ ВЫХОД", pulseReady: false, sector: 1, sectorName: "ПЕРИМЕТР",
-  totalSectors: 3, score: 0, usedPulses: 0, grade: null, health: 2, maxHealth: 2, stealth: 100,
+  passes: 0, passesRequired: 5, charges: 2, secondsLeft: 90, sentinelMode: "patrol", status: "playing",
+  message: "СОБЕРИТЕ ПРОПУСКА И НАЙДИТЕ ВЫХОД", pulseReady: false, sector: 1, sectorName: "ПЕРИМЕТР",
+  totalSectors: 3, score: 0, usedPulses: 0, grade: null, seed: 0, health: 2, maxHealth: 2, stealth: 100,
   noise: 0, shell: "echo", jumpReady: true, dashReady: true, rollReady: true, sprinting: false, crouching: false, flashlightOn: true, canInteract: false, event: null, ending: null, mode: "story", money: 0, rations: 0, runCash: 0, relics: [], achievements: 0, cameraMode: "tactical", tacticalZoom: 0.52, hasCheckpoint: false, minimap: { rooms: [], corridors: [], markers: [], player: { x: -15.2, z: 9.4 }, heading: { x: 0, z: 1 }, breadcrumbs: [], waypoint: null, waypointLabel: null, discoveredRooms: 0, totalRooms: 0, alert: "patrol", scannerReady: true, scannerCooldown: 0, scanActive: false },
 };
 
 const TUTORIAL_STEPS = [
   { eyebrow: "НОЧНАЯ СМЕНА 01/04", title: "ДЕРЖИТЕ КУРС", text: "Левый круг ведёт работника по офису. Чувствительность меняется в верхнем углу HUD.", glyph: "↗" },
   { eyebrow: "НОЧНАЯ СМЕНА 02/04", title: "НЕ ДАЙТЕ СЕБЯ ЗАМЕТИТЬ", text: "Столы и шкафы закрывают обзор. Белая шкала — здоровье, мятная — спокойствие, янтарная — шум.", glyph: "◒" },
-  { eyebrow: "НОЧНАЯ СМЕНА 03/04", title: "ШАГ ДОМОЙ", text: "ТЕЛЕПОРТ пересекает опасный участок. Он не убивает: бластер лишь ненадолго оглушает преследователя.", glyph: "⌁" },
-  { eyebrow: "НОЧНАЯ СМЕНА 04/04", title: "ВЕРНИТЕ СВОЁ", text: "Забирайте деньги из сейфов, ищите личные вещи и уходите через выход. Каждое достижение сохраняет ваш дневник.", glyph: "◇" },
+  { eyebrow: "НОЧНАЯ СМЕНА 03/04", title: "ПРОПУСКА И БЛАСТЕР", text: "Пропуска открывают выход и боковые двери. Бластер не убивает — он лишь ненадолго оглушает преследователя.", glyph: "◇" },
+  { eyebrow: "НОЧНАЯ СМЕНА 04/04", title: "ВЕРНИТЕ СВОЁ", text: "Забирайте деньги из сейфов, ищите личные вещи и уходите через выход. Каждое достижение сохраняет ваш дневник.", glyph: "⌁" },
 ] as const;
 
 function formatTime(totalSeconds: number) {
@@ -74,7 +75,14 @@ export default function GameCanvas() {
   const [sensitivity, setSensitivity] = useState(1);
   const [showDiary, setShowDiary] = useState(false);
   const [mapExpanded, setMapExpanded] = useState(false);
+  const [impactCount, setImpactCount] = useState(0);
   const lookPointer = useRef<{ id: number; x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const onImpact = () => setImpactCount((count) => count + 1);
+    window.addEventListener("ai-core-impact", onImpact);
+    return () => window.removeEventListener("ai-core-impact", onImpact);
+  }, []);
 
   useEffect(() => {
     const onHud = (event: Event) => { setHud((event as CustomEvent<HUDSnapshot>).detail); setIsReady(true); };
@@ -166,19 +174,19 @@ export default function GameCanvas() {
 
   return (
     <main className="prism-shell rogue-shell night-shift-shell" aria-label="Игра AI Core Escape Night Shift">
-      <div className="prism-vignette" aria-hidden="true" /><div className="prism-scanlines" aria-hidden="true" />
+      <div className={`prism-vignette${hud.health === 1 ? " low-health" : ""}`} aria-hidden="true" /><div className="prism-scanlines" aria-hidden="true" />{impactCount > 0 && <div className="impact-flash" key={impactCount} aria-hidden="true" />}
       <canvas ref={canvasRef} className="prism-canvas" aria-label="Игровая зона офисного кошмара" />
       <div className={`parallax-plane parallax-far mode-${hud.cameraMode}`} style={{ transform: `translate(${-hud.minimap.player.x * 0.25}px, ${hud.minimap.player.z * 0.18}px)` }} aria-hidden="true" /><div className={`parallax-plane parallax-near mode-${hud.cameraMode}`} style={{ transform: `translate(${-hud.minimap.player.x * 0.7}px, ${hud.minimap.player.z * 0.48}px)` }} aria-hidden="true" />
       <div className={`tactical-vision ${hud.cameraMode === "tactical" ? "is-active" : ""} ${hud.minimap.scanActive ? "is-scanning" : ""}`} aria-hidden="true" />
       <div className={`threat-field threat-${hud.sentinelMode}`} aria-hidden="true"><span /><i /></div>
-      {showMenu && <section className="main-menu-panel" aria-label="Главное меню"><p className="hud-kicker">AI//CORE // НОЧНАЯ СМЕНА</p><div className="comic-strip" aria-hidden="true"><i>УТРО</i><i>СМЕНА</i><i>ВЫХОД?</i></div><h2>ВЕРНИТЕ СВОЁ.<br />НАЙДИТЕ ВЫХОД.</h2><p>Подвал ведёт к архивному лифту, лифт — к чердачному хранилищу. Офис говорит голосом AI//CORE, но решение остаётся за вами.</p><div className="main-menu-actions"><button type="button" onClick={() => startRun(false)}>НОВАЯ СМЕНА <span>→</span></button>{hud.hasCheckpoint && <button type="button" className="menu-secondary" onClick={() => startRun(true)}>ПРОДОЛЖИТЬ С ЧЕКПОИНТА <span>↗</span></button>}<button type="button" className="menu-secondary" onClick={() => send("ai-core-buy-ration")}>ПАЁК +1 // $40 <span>{hud.rations}</span></button></div><p className="menu-tip">ВЕКТОР — движение · СВЯЗЬ — двери/узлы · ПЕРЕКАТ — уход от угрозы · H — паёк</p></section>}
+      {showMenu && <section className="main-menu-panel" aria-label="Главное меню"><figure className="menu-art" aria-hidden="true"><img src={GAME_ASSETS.visualTarget} alt="" /></figure><p className="hud-kicker">AI//CORE // НОЧНАЯ СМЕНА</p><div className="comic-strip" aria-hidden="true"><i>УТРО</i><i>СМЕНА</i><i>ВЫХОД?</i></div><h2>ВЕРНИТЕ СВОЁ.<br />НАЙДИТЕ ВЫХОД.</h2><p>Подвал ведёт к архивному лифту, лифт — к чердачному хранилищу. Офис говорит голосом AI//CORE, но решение остаётся за вами.</p><div className="main-menu-actions"><button type="button" onClick={() => startRun(false)}>НОВАЯ СМЕНА <span>→</span></button>{hud.hasCheckpoint && <button type="button" className="menu-secondary" onClick={() => startRun(true)}>ПРОДОЛЖИТЬ С ЧЕКПОИНТА <span>↗</span></button>}<button type="button" className="menu-secondary" onClick={() => send("ai-core-buy-ration")}>ПАЁК +1 // $40 <span>{hud.rations}</span></button></div><p className="menu-tip">ВЕКТОР — движение · СВЯЗЬ — двери/узлы · ПЕРЕКАТ — уход от угрозы · H — паёк</p></section>}
 
       <section className="hud hud-top-left" aria-label="Статус протокола">
         <div className="brand-lockup"><span className="brand-symbol" aria-hidden="true"><img src={GAME_ASSETS.mark} alt="" className="brand-mark" /><span className="brand-core-glyph" /></span><div><p className="hud-kicker">NIGHT SHIFT // {hud.mode === "story" ? "СМЕНА" : "СВОБОДНЫЙ КОШМАР"}</p><h1>AI//CORE</h1></div></div>
-        <p className="objective-line">{hud.message}</p><p className="sector-readout">СЕКТОР {String(hud.sector).padStart(2, "0")}/{String(hud.totalSectors).padStart(2, "0")} <span>{hud.sectorName}</span></p>
+        <p className="objective-line">{hud.message}</p><p className="sector-readout">СЕКТОР {String(hud.sector).padStart(2, "0")}/{String(hud.totalSectors).padStart(2, "0")} <span>{hud.sectorName}</span> · СИД {hud.seed}</p>
       </section>
 
-      <section className="hud hud-top-center" aria-label="Пропуска и заряды бластера"><p className="hud-kicker">ПРОПУСКА / ЗАРЯДЫ</p><div className="charge-pips">{Array.from({ length: hud.maxCharges }, (_, index) => <span className={index < hud.charges ? "charge-pip is-live" : "charge-pip"} key={index} />)}</div></section>
+      <section className="hud hud-top-center" aria-label="Пропуска и заряды бластера"><p className="hud-kicker">ПРОПУСКА // ВЫХОД</p><div className="charge-pips pass-pips">{Array.from({ length: hud.passesRequired }, (_, index) => <span className={index < hud.passes ? "charge-pip is-live" : "charge-pip"} key={index} />)}</div><p className="charge-readout">ЗАРЯДЫ БЛАСТЕРА: <strong>{hud.charges}</strong></p></section>
       <section className="hud hud-top-right" aria-label="Время и деньги"><p className="hud-kicker">ДО ПРОБУЖДЕНИЯ</p><p className="timer-readout">{formatTime(hud.secondsLeft)}</p><p className="score-readout">$ {String(hud.money + hud.runCash).padStart(5, "0")}</p><button className="sensitivity-chip" type="button" onClick={nextSensitivity}>SENS {sensitivity.toFixed(2)}</button></section>
 
       <section className="hud survival-panel" aria-label="Живучесть и скрытность">
@@ -197,7 +205,7 @@ export default function GameCanvas() {
 
       <section className="hud hud-bottom-left controls-card" aria-label="Управление с клавиатуры"><p><kbd>WASD</kbd> ДВИЖЕНИЕ</p><p><kbd>Q</kbd> ПРЫЖОК <kbd>⇧</kbd> ТЕЛЕПОРТ</p><p><kbd>SPACE</kbd> БЛАСТЕР <kbd>F</kbd> СВЯЗЬ <kbd>C</kbd> СКАН</p></section>
       <section className="hud hud-bottom-right sentinel-card" aria-live="polite"><span className={`sentinel-dot ${hud.sentinelMode}`} /><p>{statusLabel}</p></section>
-      {!isReady && <div className="boot-sequence">ЗАПУСК СЕТКИ РЕАКТОРА…</div>}
+      {!isReady && <div className="boot-sequence">ОТКРЫВАЕТСЯ АРХИВ НОЧНОЙ СМЕНЫ…</div>}
 
       {!showTutorial && <section className="touch-controls rogue-touch-controls" aria-label="Сенсорное управление">
         <button ref={joystickRef} type="button" className="touch-joystick" aria-label="Джойстик движения" onPointerDown={startJoystick} onPointerMove={updateJoystick} onPointerUp={stopJoystick} onPointerCancel={stopJoystick} onLostPointerCapture={stopJoystick} onContextMenu={(event) => event.preventDefault()}><span className="joystick-cross" aria-hidden="true" /><span className="joystick-knob" style={{ transform: `translate(${stickOffset.x}px, ${stickOffset.y}px)` }} aria-hidden="true" /><span className="touch-label">ВЕКТОР</span></button>
@@ -217,7 +225,7 @@ export default function GameCanvas() {
 
       {showTutorial && <section className="tutorial-panel" aria-live="polite" aria-label="Обучение управлению"><div className="tutorial-glyph" aria-hidden="true">{tutorial.glyph}</div><p className="hud-kicker">{tutorial.eyebrow}</p><h2>{tutorial.title}</h2><p>{tutorial.text}</p><div className="tutorial-actions"><button type="button" className="tutorial-skip" onClick={() => setShowTutorial(false)}>ПРОПУСТИТЬ БРИФИНГ</button><button type="button" className="tutorial-next" onClick={() => tutorialStep === TUTORIAL_STEPS.length - 1 ? setShowTutorial(false) : setTutorialStep((step) => step + 1)}>{tutorialStep === TUTORIAL_STEPS.length - 1 ? "ВХОД В РУН" : "ПРОДОЛЖИТЬ"}<span>→</span></button></div></section>}
 
-      {showDiary && <section className="diary-panel" aria-live="polite"><p className="hud-kicker">ЛИЧНЫЙ ДНЕВНИК // СОХРАНЕНО</p><h2>ВЕРНУТЫЕ ВЕЩИ</h2>{hud.relics.length ? <ul>{hud.relics.map((relic) => <li key={relic}>{relic}</li>)}</ul> : <p>Пока пусто. Ищите личные вещи в дальних кабинетах и уходите с ними через выход.</p>}<p className="diary-achievement">ДОСТИЖЕНИЯ СОХРАНЕНЫ: {hud.achievements}</p><button type="button" onClick={() => setShowDiary(false)}>ЗАКРЫТЬ ДНЕВНИК</button></section>}
+      {showDiary && <section className="diary-panel" aria-live="polite"><p className="hud-kicker">ЛИЧНЫЙ ДНЕВНИК // СОХРАНЕНО</p><h2>ВЕРНУТЫЕ ВЕЩИ</h2>{hud.relics.length ? <ul>{hud.relics.map((relic) => <li key={relic}><strong>{relic}</strong><small>{RELIC_INFO[relic] ?? "Действует на всю следующую ночь."}</small></li>)}</ul> : <p>Пока пусто. Ищите личные вещи в дальних кабинетах и уходите с ними через выход.</p>}<p className="diary-achievement">ДОСТИЖЕНИЯ СОХРАНЕНЫ: {hud.achievements}</p><button type="button" onClick={() => setShowDiary(false)}>ЗАКРЫТЬ ДНЕВНИК</button></section>}
 
       {hud.status === "event" && hud.event && <section className="event-panel" aria-live="assertive"><p className="hud-kicker">{hud.event.kicker}</p><h2>{hud.event.title}</h2><p>{hud.event.body}</p><div className="event-choices">{hud.event.choices.map((choice) => <button className={`event-choice ${choice.tone}`} type="button" key={choice.id} onClick={() => chooseEvent(choice.id)}><strong>{choice.label}</strong><small>{choice.detail}</small></button>)}</div></section>}
       {hud.status !== "playing" && hud.status !== "event" && !showTutorial && <section className={`outcome-panel ${hud.status === "lost" ? "lost" : ""}`} aria-live="assertive"><p className="hud-kicker">{isCampaignComplete ? "ПРОТОКОЛ ЗАВЕРШЁН" : isWon ? `ЭТАЖ ${String(hud.sector).padStart(2, "0")} ПРОЙДЕН` : "РУН ПРЕРВАН"}</p><h2>{isCampaignComplete ? hud.ending?.title ?? "ЯДРО РАЗОМКНУТО." : isWon ? `ЛИФТ: ${hud.grade ?? "B"}` : "СИГНАЛ ПОТЕРЯН."}</h2><p>{isCampaignComplete ? hud.ending?.body ?? "Маршрут свободен. Вы вышли за пределы расчёта ядра." : isWon ? `Осталось ${formatTime(hud.secondsLeft)}. Импульсов: ${hud.usedPulses}. Лифт переносит вас на следующий этаж.` : "Потеряна целостность сигнала. Пробуйте другой маршрут или продолжайте с чекпоинта."}</p>{isCampaignComplete && hud.ending && <p className="ending-ledger">{hud.ending.ledger}</p>}{(isWon || isCampaignComplete) && <p className="outcome-score">СИГНАЛ: {String(hud.score).padStart(5, "0")}</p>}<div className="outcome-actions">{isWon && <button type="button" onClick={advanceSector}>ВОЙТИ В ЛИФТ <span>↗</span></button>}<button type="button" className={isWon ? "outcome-secondary" : ""} onClick={restart}>{isCampaignComplete ? "НОВЫЙ ЦИКЛ" : "ПОВТОРИТЬ ВЕКТОР"} <span>R</span></button></div></section>}

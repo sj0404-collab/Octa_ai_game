@@ -70,8 +70,12 @@ export const SHELLS: Record<ShellId, ShellProfile> = {
 };
 
 export interface HUDSnapshot {
+  /** Access passes collected: unlock the fire exit and locked side doors. */
+  passes: number;
+  /** Access passes required to open the fire exit this sector. */
+  passesRequired: number;
+  /** Nonlethal stun ammo remaining. */
   charges: number;
-  maxCharges: number;
   secondsLeft: number;
   sentinelMode: SentinelMode;
   status: GameStatus;
@@ -83,6 +87,7 @@ export interface HUDSnapshot {
   score: number;
   usedPulses: number;
   grade: "S" | "A" | "B" | null;
+  seed: number;
   health: number;
   maxHealth: number;
   stealth: number;

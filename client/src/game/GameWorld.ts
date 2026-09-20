@@ -11,6 +11,7 @@ import { SECTORS, type SectorConfig } from "./sectors";
 import type { CameraMode, GameStatus, HUDSnapshot, MinimapMarker, MinimapSnapshot, Point2, SentinelMode } from "./types";
 import { composeEpilogue, createLedger, createTerminalEvent, resolveEvent, type Epilogue, type RunEvent, type RunLedger } from "./Narrative";
 import { ProgressStore } from "./ProgressStore";
+import { relicModifiers, DEFAULT_MODIFIERS, type RunModifiers } from "./relics";
 import type { NightMode } from "./types";
 
 export class GameWorld {
@@ -36,6 +37,7 @@ export class GameWorld {
   private trapCooldown = 0;
   private readonly mode: NightMode = new URLSearchParams(window.location.search).get("mode") === "free" ? "free" : "story";
   private readonly progress = new ProgressStore();
+  private modifiers: RunModifiers = DEFAULT_MODIFIERS;
   private runCash = 0;
   private cameraMode: CameraMode = new URLSearchParams(window.location.search).get("camera") === "map" ? "map" : new URLSearchParams(window.location.search).get("camera") === "first" ? "first" : new URLSearchParams(window.location.search).get("camera") === "third" ? "third" : "tactical";
   private appliedCameraMode: CameraMode | null = null;
@@ -57,6 +59,7 @@ export class GameWorld {
     const requestedSeed = Number(new URLSearchParams(window.location.search).get("seed"));
     this.runSeed = this.demoMode ? 417 : Number.isFinite(requestedSeed) && requestedSeed > 0 ? requestedSeed : Math.floor(100000 + Math.random() * 899999);
     this.paused = !this.demoMode && !new URLSearchParams(window.location.search).has("autostart");
+    this.applyRelicModifiers();
     this.configureCurrentSector();
     if (this.environment.currentLayout) this.player.setSpawn(this.environment.currentLayout.start);
     this.updateMapDiscovery();
@@ -90,7 +93,7 @@ export class GameWorld {
     const eventChoice = this.input.consumeEventChoice();
     if (eventChoice && this.status === "event" && this.currentEvent) this.resolveCurrentEvent(eventChoice);
 
-    if (this.paused) { this.emitHUD(); return; }
+    if (this.paused) { this.hudThrottle -= delta; if (this.hudThrottle <= 0) { this.hudThrottle = 0.16; this.emitHUD(); } return; }
     if (this.status === "playing") {
       this.secondsLeft = Math.max(0, this.secondsLeft - delta);
       const direction = this.demoMode ? this.getDemoDirection() : this.input.getMoveAxis();
@@ -104,7 +107,7 @@ export class GameWorld {
       if (this.input.consumeInteract()) {
         const terminal = this.environment.getNearbyTerminal(this.player.position);
         if (terminal) this.openTerminalEvent(terminal.kind);
-        else { const doorResult = this.environment.openNearbyDoor(this.player.position, this.player.charges); if (doorResult === "opened") { this.emitSound("door"); this.emitVoice("Пропуск подтверждён. Боковой маршрут открыт."); } else if (doorResult === "locked") { this.emitSound("door"); this.emitVoice("Дверь требует два допуска. Найдите ещё один пропуск."); } }
+        else { const doorResult = this.environment.openNearbyDoor(this.player.position, this.player.passes); if (doorResult === "opened") { this.emitSound("door"); this.emitVoice("Пропуск подтверждён. Боковой маршрут открыт."); } else if (doorResult === "locked") { this.emitSound("door"); this.emitVoice("Дверь требует два пропуска. Найдите ещё один."); } }
       }
       this.player.update(delta, direction, (from, wanted) => this.environment.resolveMovement(from, wanted), sprintRequested);
       this.updateMapDiscovery();
@@ -119,7 +122,7 @@ export class GameWorld {
       this.enemies.update(delta, this.player.position, this.player.getPulseRadius(), this.player.noise, this.player.isFlashlightOn, this.player.getViewDirection(), this.environment);
       if (this.enemies.mode !== this.announcedThreat) { this.announcedThreat = this.enemies.mode; if (this.enemies.mode === "alert") this.emitVoice("Свет замечен. Служба безопасности идёт проверить сектор."); else if (this.enemies.mode === "chase") this.emitVoice("Тревога. Вас обнаружили. Меняйте маршрут."); else if (this.enemies.mode === "stunned") this.emitVoice("Преследователь оглушён. Окно для отхода открыто."); }
       if (this.enemies.mode === "chase") this.wasDetected = true;
-      this.player.charges += this.environment.collectNearby(this.player.position);
+      this.player.passes += this.environment.collectNearby(this.player.position);
       const loot = this.environment.collectLoot(this.player.position);
       loot.forEach((item) => {
         if (item.kind === "cash") { this.score += item.value; this.runCash += item.value; this.progress.award("первый-конверт"); this.emitSound("cash"); }
@@ -127,10 +130,10 @@ export class GameWorld {
         if (item.kind === "heal") { this.player.heal(item.value); this.emitSound("heal"); }
         if (item.kind === "relic" && item.relic) { this.ledger.relics.push(item.relic); this.progress.addRelic(item.relic); this.progress.award("вернул-памятку"); this.emitSound("relic"); }
       });
-      const exitActive = this.player.charges >= this.currentSector.chargesRequired;
+      const exitActive = this.player.passes >= this.passesRequired;
       this.environment.setExitActive(exitActive);
-      if (this.enemies.catches(this.player.position)) this.player.takeDamage(1);
-      if (this.trapCooldown <= 0 && this.environment.touchesTrap(this.player.position)) { this.player.takeDamage(1); this.player.noise = Math.min(100, this.player.noise + 60); this.trapCooldown = 1.1; this.emitSound("trap"); }
+      if (this.enemies.catches(this.player.position)) { if (this.player.takeDamage(1)) this.emitImpact(); }
+      if (this.trapCooldown <= 0 && this.environment.touchesTrap(this.player.position)) { if (this.player.takeDamage(1)) this.emitImpact(); this.player.noise = Math.min(100, this.player.noise + 60); this.trapCooldown = 1.1; this.emitSound("trap"); }
       if (exitActive && this.environment.atExit(this.player.position)) this.completeSector();
       else if (this.secondsLeft <= 0 || this.player.health <= 0) { this.status = "lost"; this.demoRestartDelay = 1.1; }
       this.checkpointTimer -= delta;
@@ -146,22 +149,24 @@ export class GameWorld {
 
   dispose() { this.input.dispose(); this.enemies.dispose(); }
   private get currentSector(): SectorConfig { return SECTORS[this.sectorIndex]; }
-  private configureCurrentSector() { const sector = this.currentSector; this.discoveredRooms.clear(); this.secondsLeft = sector.duration; this.environment.configureSector(sector, this.runSeed + sector.id * 1009); if (this.environment.currentLayout) this.enemies.configure(this.environment.currentLayout); }
-  private resetSector() { this.elapsed = 0; this.status = "playing"; this.demoRestartDelay = 0; this.usedPulses = 0; this.wasDetected = false; this.grade = null; this.currentEvent = null; this.ending = null; this.trapCooldown = 0; this.scannerCooldown = 0; this.scannerRevealTime = 0; this.breadcrumbTimer = 0; this.breadcrumbs = []; this.doorNoiseTimer = 0; this.checkpointTimer = 3; this.runCash = 0; this.configureCurrentSector(); this.player.reset(); if (this.environment.currentLayout) this.player.setSpawn(this.environment.currentLayout.start); this.updateMapDiscovery(); this.emitHUD(); }
+  private get passesRequired() { return Math.max(3, this.currentSector.chargesRequired - this.modifiers.passDiscount); }
+  private applyRelicModifiers() { this.modifiers = relicModifiers(this.progress.profile); this.player.noiseRelax = this.modifiers.noiseRelax; }
+  private configureCurrentSector() { const sector = this.currentSector; this.discoveredRooms.clear(); this.secondsLeft = sector.duration + this.modifiers.extraTime; this.environment.configureSector(sector, this.runSeed + sector.id * 1009); if (this.environment.currentLayout) this.enemies.configure(this.environment.currentLayout); }
+  private resetSector() { this.elapsed = 0; this.status = "playing"; this.demoRestartDelay = 0; this.usedPulses = 0; this.wasDetected = false; this.grade = null; this.currentEvent = null; this.ending = null; this.trapCooldown = 0; this.scannerCooldown = 0; this.scannerRevealTime = 0; this.breadcrumbTimer = 0; this.breadcrumbs = []; this.doorNoiseTimer = 0; this.checkpointTimer = 3; this.runCash = 0; this.configureCurrentSector(); this.player.reset(); this.applyRelicModifiers(); if (this.environment.currentLayout) this.player.setSpawn(this.environment.currentLayout.start); this.updateMapDiscovery(); this.emitHUD(); }
   private restartRun() { this.sectorIndex = 0; this.score = 0; this.ledger = createLedger(); this.runSeed = this.demoMode ? 417 : Math.floor(100000 + Math.random() * 899999); this.resetSector(); }
   private advanceSector() { this.sectorIndex = Math.min(this.sectorIndex + 1, SECTORS.length - 1); this.resetSector(); }
-  private completeSector() { this.grade = this.getGrade(); const gradeBonus = this.grade === "S" ? 900 : this.grade === "A" ? 540 : 260; this.score += Math.ceil(this.secondsLeft * 10) + gradeBonus + this.player.charges * 75 - this.usedPulses * 25; if (this.runCash > 0) this.progress.addMoney(this.runCash); if (!this.wasDetected) this.progress.award("тихая-смена"); if (this.player.health === this.player.maxHealth) this.progress.award("не-дала-панике-взять-верх"); this.status = this.sectorIndex === SECTORS.length - 1 ? "campaign-complete" : "won"; if (this.status === "campaign-complete") { this.progress.completeRun(); this.progress.clearCheckpoint(); this.progress.award(this.mode === "story" ? "пережил-смену" : "свободный-кошмар"); this.ending = composeEpilogue(this.ledger, this.runSeed + this.score); } else this.saveCheckpoint(); this.emitSound("escape"); this.emitVoice(this.status === "campaign-complete" ? "Смена закрыта. Вы сохранили своё." : "Лифт разблокирован. Переход на следующий этаж готов."); this.demoRestartDelay = 1.4; }
+  private completeSector() { this.grade = this.getGrade(); const gradeBonus = this.grade === "S" ? 900 : this.grade === "A" ? 540 : 260; const quietBonus = !this.wasDetected ? this.modifiers.quietBonus : 0; this.score += Math.ceil(this.secondsLeft * 10) + Math.ceil(gradeBonus * (1 + quietBonus)) + this.player.passes * 45 + this.player.charges * 60 - this.usedPulses * 25; if (this.runCash > 0) this.progress.addMoney(this.runCash); if (!this.wasDetected) this.progress.award("тихая-смена"); if (this.player.health === this.player.maxHealth) this.progress.award("не-дала-панике-взять-верх"); this.status = this.sectorIndex === SECTORS.length - 1 ? "campaign-complete" : "won"; if (this.status === "campaign-complete") { this.progress.completeRun(); this.progress.clearCheckpoint(); this.progress.award(this.mode === "story" ? "пережил-смену" : "свободный-кошмар"); this.ending = composeEpilogue(this.ledger, this.runSeed + this.score); } else this.saveCheckpoint(); this.emitSound("escape"); this.emitVoice(this.status === "campaign-complete" ? "Смена закрыта. Вы сохранили своё." : "Лифт разблокирован. Переход на следующий этаж готов."); this.demoRestartDelay = 1.4; }
   private getGrade(): "S" | "A" | "B" { const timeRatio = this.secondsLeft / this.currentSector.duration; if (!this.wasDetected && timeRatio >= 0.35) return "S"; if (timeRatio >= 0.15) return "A"; return "B"; }
-  private saveCheckpoint() { this.progress.saveCheckpoint({ sectorIndex: this.sectorIndex, runSeed: this.runSeed, x: this.player.position.x, z: this.player.position.z, charges: this.player.charges, secondsLeft: Math.ceil(this.secondsLeft) }); }
-  private restoreCheckpoint() { const checkpoint = this.progress.profile.checkpoint; if (!checkpoint) return; this.sectorIndex = Math.max(0, Math.min(SECTORS.length - 1, checkpoint.sectorIndex)); this.runSeed = checkpoint.runSeed; this.resetSector(); this.player.setSpawn({ x: checkpoint.x, z: checkpoint.z }); this.player.charges = checkpoint.charges; this.secondsLeft = Math.max(30, checkpoint.secondsLeft); this.updateMapDiscovery(); }
+  private saveCheckpoint() { this.progress.saveCheckpoint({ sectorIndex: this.sectorIndex, runSeed: this.runSeed, x: this.player.position.x, z: this.player.position.z, passes: this.player.passes, charges: this.player.charges, secondsLeft: Math.ceil(this.secondsLeft) }); }
+  private restoreCheckpoint() { const checkpoint = this.progress.profile.checkpoint; if (!checkpoint) return; this.sectorIndex = Math.max(0, Math.min(SECTORS.length - 1, checkpoint.sectorIndex)); this.runSeed = checkpoint.runSeed; this.resetSector(); this.player.setSpawn({ x: checkpoint.x, z: checkpoint.z }); this.player.passes = checkpoint.passes ?? checkpoint.charges; this.player.charges = checkpoint.charges; this.secondsLeft = Math.max(30, checkpoint.secondsLeft); this.updateMapDiscovery(); }
 
   private emitHUD() {
-    const isExitActive = this.player.charges >= this.currentSector.chargesRequired;
+    const isExitActive = this.player.passes >= this.passesRequired;
     const snapshot: HUDSnapshot = {
-      charges: this.player.charges, maxCharges: this.currentSector.chargesRequired, secondsLeft: Math.ceil(this.secondsLeft), sentinelMode: this.enemies.mode, status: this.status,
-      pulseReady: this.player.charges > 0 && this.player.pulseCooldown <= 0, sector: this.currentSector.id, sectorName: this.currentSector.codeName, totalSectors: SECTORS.length, score: this.score, usedPulses: this.usedPulses, grade: this.grade,
+      passes: this.player.passes, passesRequired: this.passesRequired, charges: this.player.charges, secondsLeft: Math.ceil(this.secondsLeft), sentinelMode: this.enemies.mode, status: this.status,
+      pulseReady: this.player.charges > 0 && this.player.pulseCooldown <= 0, sector: this.currentSector.id, sectorName: this.currentSector.codeName, totalSectors: SECTORS.length, score: this.score, usedPulses: this.usedPulses, grade: this.grade, seed: this.runSeed,
       health: this.player.health, maxHealth: this.player.maxHealth, stealth: Math.round(this.player.stealth), noise: Math.round(this.player.noise), shell: this.player.shell, jumpReady: this.player.jumpReady, dashReady: this.player.dashReady, rollReady: this.player.rollReady, sprinting: this.player.isSprinting, crouching: this.player.isCrouching, flashlightOn: this.player.isFlashlightOn, canInteract: this.environment.canInteract(this.player.position), event: this.currentEvent, ending: this.ending, mode: this.mode, money: this.progress.profile.money, rations: this.progress.profile.rations, runCash: this.runCash, relics: this.progress.profile.relics, achievements: this.progress.profile.achievements.length, cameraMode: this.cameraMode, tacticalZoom: this.input.getTacticalZoom(), hasCheckpoint: Boolean(this.progress.profile.checkpoint), minimap: this.buildMinimap(isExitActive),
-      message: this.status === "event" ? "КОРПОРАТИВНЫЙ УЗЕЛ ЖДЁТ РЕШЕНИЯ" : this.status === "campaign-complete" ? "СМЕНА ЗАКРЫТА — ВЫ СОХРАНИЛИ СВОЁ" : this.status === "won" ? "ЭТАЖ ПРОЙДЕН — ПЕРЕХОД ДОСТУПЕН" : this.status === "lost" ? "ПАНИКА РАЗБУДИЛА ВАС ДО ВЫХОДА" : isExitActive ? "ПОЖАРНЫЙ ВЫХОД АКТИВЕН — ИДИТЕ К НЕМУ" : this.enemies.mode === "chase" ? "СЛУЖБА БЕЗОПАСНОСТИ ИДЁТ ПО СЛЕДУ" : this.environment.isNearMovingWall(this.player.position) ? "СДВИЖНАЯ ПЕРЕГОРОДКА ШУМИТ — НЕ ЗАДЕРЖИВАЙТЕСЬ" : this.environment.isNearbyDoorLocked(this.player.position) ? `БОКОВАЯ ДВЕРЬ: ${this.player.charges}/2 ПРОПУСКА — НАЖМИТЕ СВЯЗЬ` : this.environment.getNearbyDoor(this.player.position) ? "ДВЕРЬ ЗАКРЫТА — НАЖМИТЕ СВЯЗЬ" : this.environment.canInteract(this.player.position) ? "РАБОЧИЙ УЗЕЛ ДОСТУПЕН — НАЖМИТЕ СВЯЗЬ" : this.player.charges > 0 ? "БЛАСТЕР ГОТОВ — ОГЛУШИТЕ ПРЕСЛЕДОВАТЕЛЯ" : this.currentSector.objective,
+      message: this.status === "event" ? "КОРПОРАТИВНЫЙ УЗЕЛ ЖДЁТ РЕШЕНИЯ" : this.status === "campaign-complete" ? "СМЕНА ЗАКРЫТА — ВЫ СОХРАНИЛИ СВОЁ" : this.status === "won" ? "ЭТАЖ ПРОЙДЕН — ПЕРЕХОД ДОСТУПЕН" : this.status === "lost" ? "ПАНИКА РАЗБУДИЛА ВАС ДО ВЫХОДА" : isExitActive ? "ПОЖАРНЫЙ ВЫХОД АКТИВЕН — ИДИТЕ К НЕМУ" : this.enemies.mode === "chase" ? "СЛУЖБА БЕЗОПАСНОСТИ ИДЁТ ПО СЛЕДУ" : this.environment.isNearMovingWall(this.player.position) ? "СДВИЖНАЯ ПЕРЕГОРОДКА ШУМИТ — НЕ ЗАДЕРЖИВАЙТЕСЬ" : this.environment.isNearbyDoorLocked(this.player.position) ? `БОКОВАЯ ДВЕРЬ: ${this.player.passes}/2 ПРОПУСКА — НАЖМИТЕ СВЯЗЬ` : this.environment.getNearbyDoor(this.player.position) ? "ДВЕРЬ ЗАКРЫТА — НАЖМИТЕ СВЯЗЬ" : this.environment.canInteract(this.player.position) ? "РАБОЧИЙ УЗЕЛ ДОСТУПЕН — НАЖМИТЕ СВЯЗЬ" : this.player.passes < this.passesRequired ? `СОБЕРИТЕ ПРОПУСКА ${this.player.passes}/${this.passesRequired} — ВЫХОД ЗАПЕРТ` : this.player.charges === 0 ? "БЛАСТЕР РАЗРЯЖЕН — ИЩИТЕ ЗАРЯДЫ В ШКАФАХ" : "БЛАСТЕР ГОТОВ — ОГЛУШИТЕ ПРЕСЛЕДОВАТЕЛЯ",
     };
     window.dispatchEvent(new CustomEvent<HUDSnapshot>("ai-core-hud", { detail: snapshot }));
   }
@@ -198,6 +203,7 @@ export class GameWorld {
   private resolveCurrentEvent(choice: "guide" | "core" | "roulette") { if (!this.currentEvent) return; const outcome = resolveEvent(this.ledger, this.currentEvent, choice, this.runSeed + this.score + this.sectorIndex * 77); if (outcome.shell) this.player.setShell(outcome.shell); this.player.health = Math.max(1, Math.min(this.player.maxHealth, this.player.health + outcome.health)); this.currentEvent = null; this.status = "playing"; this.score += 180 + Math.max(0, outcome.health) * 70; }
   private emitSound(kind: "jump" | "teleport" | "stun" | "cash" | "pickup" | "heal" | "relic" | "trap" | "escape" | "scan" | "door") { window.dispatchEvent(new CustomEvent("ai-core-sound", { detail: { kind } })); }
   private emitVoice(text: string) { window.dispatchEvent(new CustomEvent("ai-core-voice", { detail: { text } })); }
+  private emitImpact() { window.dispatchEvent(new CustomEvent("ai-core-impact")); }
   private followCamera(delta: number) {
     if (!this.camera) return;
     const engine = this.camera.getEngine();

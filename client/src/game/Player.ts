@@ -17,7 +17,12 @@ interface PulseRing { mesh: Mesh; life: number; }
 export class Player {
   readonly mesh: Mesh;
   position: Point2 = { x: -8.9, z: 4.7 };
-  charges = 1;
+  /** Collected access passes — unlock the fire exit, required by locked doors. */
+  passes = 0;
+  /** Blaster ammunition — temporary nonlethal stuns only. */
+  charges = 2;
+  /** Noise dissipation multiplier from reclaimed relics ("Памятная ручка"). */
+  noiseRelax = 1;
   pulseCooldown = 0;
   health = 2;
   shell: ShellId = "echo";
@@ -82,7 +87,7 @@ export class Player {
   setShell(shell: ShellId) { this.shell = shell; this.health = Math.min(this.maxHealth, this.health + 1); (this.mesh.material as StandardMaterial).emissiveColor = SHELL_COLORS[shell]; }
 
   reset() {
-    this.position = { x: -8.9, z: 4.7 }; this.charges = 1; this.health = this.maxHealth; this.stealth = 100; this.noise = 0; this.isCovered = false; this.pulseCooldown = 0; this.teleportCooldown = 0; this.teleportTime = 0; this.jumpTime = 0; this.rollTime = 0; this.rollCooldown = 0; this.sprinting = false; this.crouching = false; this.flashlightOn = true; this.invulnerableTime = 0; this.pulseRadius = 0;
+    this.position = { x: -8.9, z: 4.7 }; this.passes = 0; this.charges = 2; this.health = this.maxHealth; this.stealth = 100; this.noise = 0; this.isCovered = false; this.pulseCooldown = 0; this.teleportCooldown = 0; this.teleportTime = 0; this.jumpTime = 0; this.rollTime = 0; this.rollCooldown = 0; this.sprinting = false; this.crouching = false; this.flashlightOn = true; this.invulnerableTime = 0; this.pulseRadius = 0;
     this.mesh.setEnabled(true); this.mesh.isVisible = true; this.coreBeacon.setEnabled(true); this.coreBeacon.isVisible = true; this.body.setEnabled(true); this.body.isVisible = true; this.head.setEnabled(true); this.head.isVisible = true; this.mesh.position.set(this.position.x, 0.42, this.position.z); this.body.position.set(this.position.x, 0.34, this.position.z); this.head.position.set(this.position.x, 0.77, this.position.z); this.mesh.rotation.set(-Math.PI / 2, 0, 0); this.spriteTexture.uOffset = 0;
     this.trails.forEach((trail) => trail.mesh.dispose()); this.pulseRings.forEach((ring) => ring.mesh.dispose()); this.trails.length = 0; this.pulseRings.length = 0;
   }
@@ -108,7 +113,7 @@ export class Player {
     }
     const exposedDrain = this.crouching || this.isCovered ? -34 : this.sprinting ? 19 : moving ? 7 : -10;
     this.stealth = clamp(this.stealth - exposedDrain * profile.stealthMultiplier * delta - this.noise * 0.022 * delta, 0, 100);
-    this.noise = Math.max(0, this.noise - delta * (this.isCovered ? 48 : 22));
+    this.noise = Math.max(0, this.noise - delta * (this.isCovered ? 48 : 22) * this.noiseRelax);
     const airborneHeight = this.jumpTime > 0 ? Math.sin((1 - this.jumpTime / 0.46) * Math.PI) * 0.95 : 0;
     const bob = Math.sin(performance.now() * 0.006) * 0.03; this.mesh.position.set(this.position.x, (this.crouching ? 0.28 : 0.42) + airborneHeight + bob, this.position.z);
     this.mesh.scaling.y = this.crouching ? 0.72 : this.isRolling ? 0.62 : 1;
