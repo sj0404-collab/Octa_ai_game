@@ -4,7 +4,6 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { SpotLight } from "@babylonjs/core/Lights/spotLight";
 import type { Scene } from "@babylonjs/core/scene";
 import { SHELLS, type Point2, type ShellId } from "./types";
@@ -42,7 +41,6 @@ export class Player {
   private readonly trails: TrailPulse[] = [];
   private readonly pulseRings: PulseRing[] = [];
   private pulseRadius = 0;
-  private readonly spriteTexture: Texture;
   private readonly coreBeacon: Mesh;
   private readonly body: Mesh;
   private readonly head: Mesh;
@@ -50,21 +48,9 @@ export class Player {
   private flashlightOn = true;
 
   constructor(private readonly scene: Scene, spriteUrl: string) {
-    this.mesh = MeshBuilder.CreatePlane("night-shift-worker", { size: 1.5, sideOrientation: 2 }, scene);
-    // The visible face must point upward toward the tactical/overview cameras.
-    // The previous +90° rotation exposed the plane backface and inverted some sprite frames.
-    this.mesh.rotation.x = -Math.PI / 2;
+    this.mesh = MeshBuilder.CreateCylinder("night-shift-worker", { height: 0.56, diameterTop: 0.44, diameterBottom: 0.58, tessellation: 10 }, scene);
     this.mesh.position = new Vector3(this.position.x, 0.42, this.position.z);
-    const material = new StandardMaterial("night-shift-worker-material", scene);
-    this.spriteTexture = new Texture(spriteUrl, scene, true, false);
-    this.spriteTexture.hasAlpha = true;
-    this.spriteTexture.uScale = 0.2;
-    material.diffuseTexture = this.spriteTexture;
-    material.opacityTexture = this.spriteTexture;
-    material.useAlphaFromDiffuseTexture = true;
-    material.emissiveColor = MINT;
-    material.disableLighting = true;
-    this.mesh.material = material;
+    const material = new StandardMaterial("night-shift-worker-material", scene); material.emissiveColor = MINT; material.disableLighting = true; this.mesh.material = material;
     this.body = MeshBuilder.CreateCylinder("night-shift-worker-body", { height: 0.56, diameterTop: 0.38, diameterBottom: 0.54, tessellation: 8 }, scene);
     this.body.position.set(this.position.x, 0.34, this.position.z);
     const bodyMaterial = new StandardMaterial("night-shift-worker-body-material", scene); bodyMaterial.diffuseColor = new Color3(0.04, 0.1, 0.15); bodyMaterial.emissiveColor = MINT.scale(0.48); bodyMaterial.disableLighting = true; this.body.material = bodyMaterial;
@@ -88,7 +74,7 @@ export class Player {
 
   reset() {
     this.position = { x: -8.9, z: 4.7 }; this.passes = 0; this.charges = 2; this.health = this.maxHealth; this.stealth = 100; this.noise = 0; this.isCovered = false; this.pulseCooldown = 0; this.teleportCooldown = 0; this.teleportTime = 0; this.jumpTime = 0; this.rollTime = 0; this.rollCooldown = 0; this.sprinting = false; this.crouching = false; this.flashlightOn = true; this.invulnerableTime = 0; this.pulseRadius = 0;
-    this.mesh.setEnabled(true); this.mesh.isVisible = true; this.coreBeacon.setEnabled(true); this.coreBeacon.isVisible = true; this.body.setEnabled(true); this.body.isVisible = true; this.head.setEnabled(true); this.head.isVisible = true; this.mesh.position.set(this.position.x, 0.42, this.position.z); this.body.position.set(this.position.x, 0.34, this.position.z); this.head.position.set(this.position.x, 0.77, this.position.z); this.mesh.rotation.set(-Math.PI / 2, 0, 0); this.spriteTexture.uOffset = 0;
+    this.mesh.setEnabled(true); this.mesh.isVisible = true; this.coreBeacon.setEnabled(true); this.coreBeacon.isVisible = true; this.body.setEnabled(true); this.body.isVisible = true; this.head.setEnabled(true); this.head.isVisible = true; this.mesh.position.set(this.position.x, 0.42, this.position.z); this.body.position.set(this.position.x, 0.34, this.position.z); this.head.position.set(this.position.x, 0.77, this.position.z); this.mesh.rotation.set(0, 0, 0);
     this.trails.forEach((trail) => trail.mesh.dispose()); this.pulseRings.forEach((ring) => ring.mesh.dispose()); this.trails.length = 0; this.pulseRings.length = 0;
   }
   setCovered(covered: boolean) { this.isCovered = covered; }
@@ -120,8 +106,7 @@ export class Player {
     this.body.position.set(this.position.x, (this.crouching ? 0.23 : 0.34) + airborneHeight + bob, this.position.z); this.body.scaling.y = this.crouching ? 0.65 : this.isRolling ? 0.48 : 1; this.body.rotation.y = this.facing; this.head.position.set(this.position.x, (this.crouching ? 0.53 : 0.77) + airborneHeight + bob, this.position.z);
     this.coreBeacon.position.set(this.position.x, 0.065, this.position.z); this.coreBeacon.rotation.y += delta * 2.4; this.coreBeacon.scaling.setAll(0.92 + Math.sin(performance.now() * 0.006) * 0.11);
     const forward = this.getViewDirection(); this.flashlight.position.set(this.position.x, this.crouching ? 0.52 : 0.78, this.position.z); this.flashlight.direction.set(forward.x, -0.12, forward.z); this.flashlight.intensity = this.flashlightOn ? (this.crouching ? 0.45 : 0.72) : 0;
-    const material = this.mesh.material as StandardMaterial; material.alpha = this.invulnerableTime > 0 && Math.floor(this.invulnerableTime * 18) % 2 === 0 ? 0.46 : 1;
-    this.spriteTexture.uOffset = (this.isTeleporting ? 4 : moving && this.trailTimer < 0.09 ? (Math.sin(this.facing) < 0 ? 1 : 2) : 0) * 0.2;
+    if (this.invulnerableTime > 0) { const pulse = Math.sin(this.invulnerableTime * 30) * 0.5 + 0.5; (this.mesh.material as StandardMaterial).emissiveColor = MINT.scale(0.5 + pulse * 0.5); } else { (this.mesh.material as StandardMaterial).emissiveColor = MINT; }
     this.updateEffects(delta);
   }
 
@@ -142,5 +127,6 @@ export class Player {
   private addRing(diameter: number, life: number, color: Color3) { const ring = MeshBuilder.CreateTorus("night-shift-pulse", { diameter, thickness: 0.05, tessellation: 40 }, this.scene); ring.position.set(this.position.x, 0.08, this.position.z); const material = new StandardMaterial("night-shift-pulse-material", this.scene); material.emissiveColor = color; material.alpha = 0.85; material.disableLighting = true; ring.material = material; this.pulseRings.push({ mesh: ring, life }); }
   private addTrail() { if (this.trails.length >= 12) this.trails.shift()?.mesh.dispose(); const trail = MeshBuilder.CreateDisc("night-shift-trail", { radius: this.isTeleporting ? 0.23 : 0.15, tessellation: 12 }, this.scene); trail.rotation.x = Math.PI / 2; trail.position.set(this.position.x - Math.sin(this.facing) * 0.25, 0.04, this.position.z - Math.cos(this.facing) * 0.25); const material = new StandardMaterial("night-shift-trail-material", this.scene); material.emissiveColor = SHELL_COLORS[this.shell]; material.alpha = this.isTeleporting ? 0.98 : 0.76; material.disableLighting = true; trail.material = material; this.trails.push({ mesh: trail, life: this.isTeleporting ? 0.42 : 0.48 }); }
   private updateEffects(delta: number) { this.pulseRadius = Math.max(0, this.pulseRadius - delta * 7.2); for (let index = this.trails.length - 1; index >= 0; index -= 1) { const trail = this.trails[index]; trail.life -= delta; trail.mesh.scaling.scaleInPlace(0.97); (trail.mesh.material as StandardMaterial).alpha = Math.max(0, trail.life * 1.8); if (trail.life <= 0) { trail.mesh.dispose(); this.trails.splice(index, 1); } } for (let index = this.pulseRings.length - 1; index >= 0; index -= 1) { const ring = this.pulseRings[index]; ring.life -= delta; ring.mesh.scaling.scaleInPlace(1.12); (ring.mesh.material as StandardMaterial).alpha = Math.max(0, ring.life * 1.8); if (ring.life <= 0) { ring.mesh.dispose(); this.pulseRings.splice(index, 1); } } }
+  dispose() { this.mesh.dispose(); this.body.dispose(); this.head.dispose(); this.coreBeacon.dispose(); this.flashlight.dispose(); this.trails.forEach((trail) => trail.mesh.dispose()); this.pulseRings.forEach((ring) => ring.mesh.dispose()); this.trails.length = 0; this.pulseRings.length = 0; }
 }
 function clamp(value: number, min: number, max: number) { return Math.max(min, Math.min(max, value)); }
